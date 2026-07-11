@@ -27,15 +27,13 @@ Turn the master switch off and your chat is **100% untouched**.
 
 | Feature | What it does |
 |---|---|
-| **Per-channel formatting** | Public, Party, Guild & Officer — each in `Vanilla` or `Compact` mode, with rank-colored names, toggleable Hypixel & guild ranks, and custom prefixes and colors. |
-| **SkyBlock level brackets** | Colored by tier using the official Hypixel scheme. |
-| **Guild Discord bridge** | Cleans up relayed Discord messages — short bot alias, clear username, optional `V1/V2/V3` version tags and a custom name color. |
-| **Compact the spam** | Damage numbers, kill combos, mob abilities, sacks, loot share, boss lines, raffle, rewards, GEXP… turned into short one-liners. |
-| **Per-message control** | Every message type gets a dropdown: `OFF` · `GREY` · `COMPACT` · `COMPACT_GREY` · `HIDE` — grouped by **Lobby** / **SkyBlock** / **System**, plus your own custom patterns. |
-| **Auto-collapse** | Repeated messages fold into one line with a `(xN)` counter; *smart collapse* also merges repeats that differ only by numbers. |
-| **Live preview** | Every config page shows sample chat rendered with your current settings — watch it change as you tweak. |
-| **Timestamps** | Optional `[HH:MM]` prefix on every line. |
-| **Update checker** | `/hsc update`. |
+| **Compact the spam** | Damage, combos, sacks, boss, rewards… shrunk to one-liners. |
+| **You choose, per message** | `OFF` · `GREY` · `COMPACT` · `HIDE` for every message type. |
+| **Cleaner channels** | Guild, Party & Public with your own colors, ranks and prefixes. |
+| **Guild Discord bridge** | Tidies Discord messages relayed into guild chat. |
+| **Auto-collapse** | Repeated lines fold into one with a `(xN)` counter. |
+| **Live preview** | Watch your chat change as you tweak the settings. |
+| **Timestamps** | Optional `[HH:MM]` on every line. |
 
 ## Commands
 
