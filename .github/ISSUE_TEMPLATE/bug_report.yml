@@ -1,0 +1,73 @@
+name: "🐛 Bug report"
+description: "Something is broken or behaving wrong"
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: "Thanks for reporting! Please fill in what you can."
+
+  - type: dropdown
+    id: mc
+    attributes:
+      label: Minecraft version
+      options:
+        - "26.1.2"
+        - "26.2"
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Mod version
+      placeholder: "1.0.0"
+    validations:
+      required: true
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What went wrong, and what did you expect instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Go to '...'
+        2. Do '...'
+        3. See the bug
+
+  - type: textarea
+    id: message
+    attributes:
+      label: Chat message involved (if any)
+      description: Paste the exact in-game message, with §/& color codes if you have them.
+      render: text
+
+  - type: textarea
+    id: log
+    attributes:
+      label: Log / crash report
+      description: Paste the relevant part of `logs/latest.log`, or link a crash report.
+      render: text
+
+  - type: input
+    id: mods
+    attributes:
+      label: Other mods installed
+      placeholder: "Fabric API, Fabric Language Kotlin, Mod Menu, ..."
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: "I'm on the latest version of the mod."
+          required: true
+        - label: "I searched existing issues and this isn't a duplicate."
+          required: true
