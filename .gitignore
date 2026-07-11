@@ -1,0 +1,29 @@
+# Gradle / Loom build output
+build/
+.gradle/
+.kotlin/
+out/
+
+# Fabric dev runtime
+run/
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.classpath
+.project
+bin/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Internal planning/design scratch (remove this line to publish the design docs)
+docs/superpowers/
+
+# Brainstorming session artifacts
+.superpowers/

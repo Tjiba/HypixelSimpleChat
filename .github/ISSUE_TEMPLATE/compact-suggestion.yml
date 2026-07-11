@@ -1,0 +1,78 @@
+name: "✨ Compact format suggestion"
+description: "Suggest a compact rendering for a Hypixel chat message"
+title: "[compact] <message name>"
+labels: ["compact-suggestion"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping compact Hypixel Simple Chat! 🎉
+
+        **Color codes:** use `§` codes for colors — e.g. `§6` gold, `§7` grey, `§a` green, `§c` red, `§e` yellow, `§8` dark grey.
+        Example format: `§6Booster §f2x §7· 2h`
+
+  - type: dropdown
+    id: message
+    attributes:
+      label: Which message?
+      description: Pick the message you want to give a compact format.
+      options:
+        - "Lobby · Pet spawn/despawn — Spawned your Bat!"
+        - "Lobby · Radiating generosity — You are still radiating with generosity!"
+        - "Lobby · Playtime ticket — PLAYTIME! You gained a Playtime Chest!"
+        - "Lobby · Reward link — Click the link to visit our website…"
+        - "Lobby · Morph / wardrobe — You are now morphed into a Cow!"
+        - "Lobby · Raffle — RAFFLE! Notch won 5000 coins in Speed Raffle #12!"
+        - "SkyBlock · Boss message — [BOSS] Maxor: I've been expecting you."
+        - "System · Server routing — Sending to server mini42S…"
+        - "System · Profile ID — Profile ID: 12ab34-cd56ef"
+        - "SkyBlock group · Dungeons"
+        - "SkyBlock group · Abilities / cooldowns"
+        - "SkyBlock group · Combat / heal"
+        - "SkyBlock group · Rewards / drops"
+        - "SkyBlock group · Misc"
+        - "SkyBlock group · Bazaar / Auction House"
+        - "SkyBlock group · Slayer"
+        - "SkyBlock group · Events"
+        - "SkyBlock group · Warnings"
+        - "Lobby group · Notifications"
+        - "System group · Transitions"
+        - "Other (describe below)"
+    validations:
+      required: true
+
+  - type: textarea
+    id: raw
+    attributes:
+      label: Raw message
+      description: Paste the exact in-game message (with §/& codes if you have them).
+      placeholder: "Your Hyperion hit 3 enemies for 2,500,000 damage."
+    validations:
+      required: true
+
+  - type: textarea
+    id: compact
+    attributes:
+      label: Suggested compact format
+      description: How it should render, using § color codes. Keep it short.
+      placeholder: "§6Hyperion §7· §c2.5M"
+      render: text
+    validations:
+      required: true
+
+  - type: input
+    id: readable
+    attributes:
+      label: In plain words (no codes)
+      description: What it should look like, described simply.
+      placeholder: "gold ability name · red short damage number"
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: "This is a Hypixel lobby or SkyBlock message (not guild/party/whisper)."
+          required: true
+        - label: "I searched existing issues and this message isn't already suggested."
+          required: true

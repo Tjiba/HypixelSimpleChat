@@ -1,0 +1,87 @@
+plugins {
+    id 'net.fabricmc.fabric-loom' version '1.17.11'
+    id 'org.jetbrains.kotlin.jvm' version '2.2.0'
+    id 'maven-publish'
+}
+
+def mcTarget = (project.findProperty('mc') ?: '26.2').toString()
+def mcSets = [
+    '26.1': [minecraft: '26.1.2', fabric_api: '0.151.0+26.1.2', rc: '4.0.1', rc_mc: '26.1', modmenu: '18.0.0-beta.1', owo: '0.13.0+26.1'],
+    '26.2': [minecraft: '26.2',   fabric_api: '0.153.0+26.2',   rc: '5.0.0', rc_mc: '26.2', modmenu: '19.0.0-alpha.1', owo: null],
+]
+def mcv = mcSets[mcTarget]
+if (mcv == null) throw new GradleException("Unknown -Pmc=${mcTarget} (use 26.1 or 26.2)")
+
+version = project.mod_version
+group = project.maven_group
+base { archivesName = "${project.archives_base_name}-mc${mcTarget}" }
+
+repositories {
+    maven { url 'https://maven.fabricmc.net/' }
+    maven { url 'https://maven.terraformersmc.com/releases/' }
+    maven { url 'https://maven.teamresourceful.com/repository/maven-public/' }
+    maven { url 'https://repo.essential.gg/repository/maven-public' }
+    maven { url 'https://pkgs.dev.azure.com/djtheredstoner/DevAuth/_packaging/public/maven/v1' }
+    maven { url 'https://maven.wispforest.io' }
+    mavenCentral()
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${mcv.minecraft}"
+    implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${mcv.fabric_api}"
+    implementation "net.fabricmc:fabric-language-kotlin:${project.fabric_kotlin_version}"
+
+    implementation "com.teamresourceful.resourcefulconfig:resourcefulconfig-fabric-${mcv.rc_mc}:${mcv.rc}"
+    include "com.teamresourceful.resourcefulconfig:resourcefulconfig-fabric-${mcv.rc_mc}:${mcv.rc}"
+    implementation "com.teamresourceful.resourcefulconfigkt:resourcefulconfigkt-26.1-rc-1:4.0.0-beta.1"
+    include "com.teamresourceful.resourcefulconfigkt:resourcefulconfigkt-26.1-rc-1:4.0.0-beta.1"
+
+    if (mcv.owo != null) {
+        implementation "io.wispforest:owo-lib:${mcv.owo}"
+        include "io.wispforest:owo-lib:${mcv.owo}"
+        // ModMenu : intégration optionnelle (26.1) pour ouvrir l'écran owo depuis Mod Menu. Non bundlé (compileOnly).
+        compileOnly "com.terraformersmc:modmenu:${mcv.modmenu}"
+    }
+
+    runtimeOnly "me.djtheredstoner:DevAuth-fabric:1.2.2"
+
+    testImplementation "org.junit.jupiter:junit-jupiter:5.11.3"
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+}
+
+loom {
+    runs {
+        client { property "devauth.enabled", "true" }
+    }
+}
+
+processResources {
+    inputs.property "version", project.version
+    inputs.property "minecraft_range", mcTarget
+    duplicatesStrategy = 'EXCLUDE'
+    filesMatching("fabric.mod.json") {
+        expand "version": project.version, "minecraft_range": mcTarget,
+            "rc_mixins": (mcv.owo != null ? "" : ",\n    \"simplechat.rc.mixins.json\""),
+            "mm_entry": (mcv.owo != null ? ",\n    \"modmenu\": [ { \"adapter\": \"kotlin\", \"value\": \"com.simplechat.HscModMenu\" } ]" : "")
+    }
+}
+
+sourceSets {
+    main {
+        resources { srcDirs "src/main/resources", "src/main/target-${mcTarget}/resources" }
+        java { srcDir "src/main/target-${mcTarget}/kotlin" }
+        kotlin { srcDir "src/main/target-${mcTarget}/kotlin" }
+    }
+    test {
+        kotlin { srcDir "src/test/target-${mcTarget}/kotlin" }
+    }
+}
+
+tasks.withType(JavaCompile).configureEach { it.options.release = 25 }
+java { sourceCompatibility = JavaVersion.VERSION_25; targetCompatibility = JavaVersion.VERSION_25 }
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+    compilerOptions.jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_24
+}
+
+test { useJUnitPlatform() }

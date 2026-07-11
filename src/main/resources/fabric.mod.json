@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "id": "simplechat",
+  "version": "${version}",
+  "name": "Hypixel Simple Chat",
+  "description": "Réaffiche le chat Hypixel (lobbies + SkyBlock) en version épurée, sans rien perdre. Commandes: /hsc, /hsc update",
+  "authors": ["Tjiba"],
+  "license": "MIT",
+  "icon": "assets/simplechat/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": [ { "adapter": "kotlin", "value": "com.simplechat.SimpleChatMod" } ]${mm_entry}
+  },
+  "mixins": [
+    "simplechat.mixins.json"${rc_mixins}
+  ],
+  "depends": {
+    "fabricloader": ">=0.18.0",
+    "minecraft": "~${minecraft_range}",
+    "java": ">=25",
+    "fabric-api": "*",
+    "fabric-language-kotlin": "*",
+    "resourcefulconfig": "*"
+  },
+  "contact": {
+    "website": "https://modrinth.com/mod/hypixel-simple-chat",
+    "sources": "https://github.com/Tjiba/HypixelSimpleChat",
+    "issues": "https://github.com/Tjiba/HypixelSimpleChat/issues"
+  }
+}
