@@ -25,18 +25,17 @@ Turn the master switch off and your chat is **100% untouched**.
 
 ## Features
 
-- **Per-channel formatting** — Public, Party, Guild and Officer each get a `Vanilla` / `Compact` mode.
-  - Names in the player's **rank color**, toggleable Hypixel rank and guild rank, custom prefixes and colors per channel.
-  - SkyBlock level brackets colored by tier (official Hypixel scheme).
-- **Guild Discord bridge** — when your guild relays Discord messages into guild chat, they get cleaned up too: the relay bot's name is replaced by a short alias, the Discord username is shown clearly, and optional `V1/V2/V3` version tags and a custom name color keep bridged lines easy to tell apart.
-- **Auto-collapse** — repeated messages fold into one line with a `(xN)` counter. *Smart collapse* also merges repeats that differ only by numbers (damage, coins…).
-- **Cleanup, grouped and per-message** — hide, dim (`GREY`), reformat (`COMPACT`) or leave (`OFF`) messages by group:
-  - **Lobby** — joins, boosters, daily/mystery rewards, raffles, playtime…
-  - **SkyBlock** — dungeons, abilities/cooldowns, combat/heal, rewards/drops, bazaar, slayer, events, warnings, NPC dialog, damage & kill-combo, Hoppity Hunt, boss lines.
-  - **System** — server routing, warping, profile switch, watchdog, welcome/queue spam.
-  - Plus your own comma-separated custom hidden patterns.
-- **Live preview** — every config page shows sample chat rendered with your current settings, right in the header.
-- **Update checker** — `/hsc update`.
+| Feature | What it does |
+|---|---|
+| **Per-channel formatting** | Public, Party, Guild & Officer — each in `Vanilla` or `Compact` mode, with rank-colored names, toggleable Hypixel & guild ranks, and custom prefixes and colors. |
+| **SkyBlock level brackets** | Colored by tier using the official Hypixel scheme. |
+| **Guild Discord bridge** | Cleans up relayed Discord messages — short bot alias, clear username, optional `V1/V2/V3` version tags and a custom name color. |
+| **Compact the spam** | Damage numbers, kill combos, mob abilities, sacks, loot share, boss lines, raffle, rewards, GEXP… turned into short one-liners. |
+| **Per-message control** | Every message type gets a dropdown: `OFF` · `GREY` · `COMPACT` · `COMPACT_GREY` · `HIDE` — grouped by **Lobby** / **SkyBlock** / **System**, plus your own custom patterns. |
+| **Auto-collapse** | Repeated messages fold into one line with a `(xN)` counter; *smart collapse* also merges repeats that differ only by numbers. |
+| **Live preview** | Every config page shows sample chat rendered with your current settings — watch it change as you tweak. |
+| **Timestamps** | Optional `[HH:MM]` prefix on every line. |
+| **Update checker** | `/hsc update`. |
 
 ## Commands
 
