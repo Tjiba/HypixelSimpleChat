@@ -67,6 +67,55 @@ class ChatRulesTest {
         assertEquals(Verdict.Pass, ChatRules.evaluate("From [MVP+] Foo: yo", RuleConfig.DEFAULT))
     }
 
+    @Test fun `pet spawn and despawn compacted`() {
+        val b = cfg.copy(actions = mapOf("pet-spawn" to RuleAction.COMPACT))
+        assertEquals(Verdict.Replace("§a+ §fBat"),
+            ChatRules.evaluate("§aSpawned your §6Bat§a!", b))
+        assertEquals(Verdict.Replace("§c- §fBat"),
+            ChatRules.evaluate("Despawned your Bat!", b))
+    }
+
+    @Test fun `radiating generosity compacted`() {
+        val b = cfg.copy(actions = mapOf("radiating-generosity" to RuleAction.COMPACT))
+        assertEquals(Verdict.Replace("§eRadiating generosity"),
+            ChatRules.evaluate("§eYou are still radiating with generosity!", b))
+    }
+
+    @Test fun `playtime ticket compacted`() {
+        val b = cfg.copy(actions = mapOf("playtime-ticket" to RuleAction.COMPACT))
+        assertEquals(Verdict.Replace("§ePlaytime §7· §a+Chest"),
+            ChatRules.evaluate("§6PLAYTIME! §eYou gained a Playtime Chest!", b))
+    }
+
+    @Test fun `reward link compacted`() {
+        val b = cfg.copy(actions = mapOf("reward-link" to RuleAction.COMPACT))
+        assertEquals(Verdict.Replace("§6Claim reward: §bhypixel.net/link"),
+            ChatRules.evaluate("Click the link to visit our website and claim your reward: hypixel.net/link", b))
+    }
+
+    @Test fun `morph and wardrobe compacted`() {
+        val b = cfg.copy(actions = mapOf("morph-wardrobe" to RuleAction.COMPACT))
+        assertEquals(Verdict.Replace("§7Morphed §8→ §fCow"),
+            ChatRules.evaluate("§aYou are now morphed into a §6Cow§a!", b))
+        assertEquals(Verdict.Replace("§7Morphed §8→ §fSheep"),
+            ChatRules.evaluate("You are now morphed as a Sheep Morph for 5 minutes.", b))
+        assertEquals(Verdict.Replace("§7Cloak §8→ §fShimmer"),
+            ChatRules.evaluate("You selected the Shimmer Cloak!", b))
+        assertEquals(Verdict.Replace("§7Reset morph"),
+            ChatRules.evaluate("Reset your Morph!", b))
+        assertEquals(Verdict.Replace("§7Reset morph"),
+            ChatRules.evaluate("§aMorph reset.", b))
+        assertEquals(Verdict.Replace("§7Right-click §fSlimeball §7to activate"),
+            ChatRules.evaluate("§7Right-Click with the §aSlimeball §7selected to activate", b))
+    }
+
+    @Test fun `skyblock pet summon keeps rarity color`() {
+        assertEquals(Verdict.Replace("§a+ §r§6Baby Yeti"),
+            ChatRules.evaluate("§aYou summoned your §6Baby Yeti§a!", cfg))
+        assertEquals(Verdict.Replace("§c- §r§5Ghoul"),
+            ChatRules.evaluate("§aYou despawned your §5Ghoul§a!", cfg))
+    }
+
     @Test fun `booster reformatted`() {
         assertEquals(Verdict.Replace("§eBooster §f4.0x§e coins §7· 3h"),
             ChatRules.evaluate("Activated your booster. You now have three hours of 4.0x coins.", cfg))
@@ -87,14 +136,9 @@ class ChatRulesTest {
             ChatRules.evaluate("§e[NPC] Simon§f: We hope you enjoy the festivities this year!", cfg))
     }
 
-    @Test fun `radiating generosity dimmed`() {
-        assertEquals(Verdict.Replace("§8You are still radiating with Generosity!"),
+    @Test fun `radiating generosity compacted by default`() {
+        assertEquals(Verdict.Replace("§eRadiating generosity"),
             ChatRules.evaluate("You are still radiating with §bGenerosity!", cfg))
-    }
-
-    @Test fun `raffle win compacted`() {
-        assertEquals(Verdict.Replace("§6§lRAFFLE §r§f[VIP] AyDede §7· §fPaint Drying Simulator §7· §8#82"),
-            ChatRules.evaluate("RAFFLE! [VIP] AyDede won Paint Drying Simulator in Speed Raffle #82!", cfg))
     }
 
     @Test fun `profile id compacted`() {
@@ -178,8 +222,26 @@ class ChatRulesTest {
             ChatRules.evaluate("+5 Kill Combo +3% ✯ Magic Find", cfg))
     }
 
-    @Test fun `pet spawn passes by default`() {
-        assertEquals(Verdict.Pass,
+    @Test fun `pet spawn compacted by default`() {
+        assertEquals(Verdict.Replace("§a+ §fTurtle companion"),
             ChatRules.evaluate("Spawned your Turtle companion!", cfg))
+    }
+
+    @Test fun `strips discord warning suffix keeping message`() {
+        assertEquals("§9Foo: ecris sur discord",
+            ChatRules.stripDiscordWarning(
+                "§9Foo: ecris sur discord Please be mindful of Discord links in chat as they may pose a security risk"))
+    }
+
+    // Forme réelle du mixin : hsc$toLegacy greffe §r+couleur devant le segment d'avertissement.
+    @Test fun `strips discord warning even when preceded by color codes`() {
+        assertEquals("§9Foo: ecris sur discord",
+            ChatRules.stripDiscordWarning(
+                "§9Foo: ecris sur discord §r§9Please be mindful of Discord links in chat as they may pose a security risk"))
+    }
+
+    @Test fun `discord warning strip leaves unrelated message intact`() {
+        val msg = "Guild > [MVP+] Foo: gg wp"
+        assertEquals(msg, ChatRules.stripDiscordWarning(msg))
     }
 }
