@@ -21,6 +21,8 @@ data class RuleConfig(
     val timestampColor: Int,
     val compactSoloClass: Boolean,
     val compactHoppity: Boolean,
+    val compactTheme: Boolean = false,
+    val compactThemeColor: Int = 0x55FFFF,
 ) {
     fun actionOf(ruleId: String, default: RuleAction): RuleAction = actions[ruleId] ?: default
 
@@ -130,6 +132,8 @@ data class RuleConfig(
             timestampColor = Settings.timestampColor,
             compactSoloClass = SkyBlockCleanup.soloClass,
             compactHoppity = SkyBlockCleanup.hoppity,
+            compactTheme = Settings.compactTheme,
+            compactThemeColor = Settings.compactThemeColor and 0xFFFFFF,
         )
     }
 }

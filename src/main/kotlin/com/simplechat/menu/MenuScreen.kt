@@ -750,7 +750,7 @@ class MenuScreen(private val parent: Screen?) : Screen(
         // Sections d'une catégorie SANS onglets (header par section ; titre vide = pas de header).
         private val FLAT_SECTIONS: Map<String?, LinkedHashMap<String, List<String>>> = mapOf(
             null to linkedMapOf(
-                "" to listOf("masterEnabled", "groupingWindowSeconds", "smartCollapse", "updateNotifications", "maxMessages", "showTimestamps", "timestampColor"),
+                "" to listOf("masterEnabled", "groupingWindowSeconds", "smartCollapse", "updateNotifications", "maxMessages", "showTimestamps", "timestampColor", "compactTheme", "compactThemeColor"),
                 "CHAT TABS" to listOf("chatTabs", "tabFilterMode"),
             ),
         )

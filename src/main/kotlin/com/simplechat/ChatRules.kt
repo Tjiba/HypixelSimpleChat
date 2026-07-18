@@ -80,7 +80,7 @@ object ChatRules {
                 RuleAction.OFF -> Verdict.Pass
                 RuleAction.HIDE -> Verdict.Hide
                 RuleAction.GREY -> Verdict.Replace("§8" + clean)
-                RuleAction.COMPACT -> Verdict.Replace(rule.beautify(clean, raw))
+                RuleAction.COMPACT -> Verdict.Replace(theme(rule.beautify(clean, raw), cfg))
                 RuleAction.COMPACT_GREY -> Verdict.Replace("§8" + clean(rule.beautify(clean, raw)))
             }
         }
@@ -92,7 +92,8 @@ object ChatRules {
                 HideAction.OFF -> Verdict.Pass
                 HideAction.HIDE -> Verdict.Hide
                 HideAction.GREY -> Verdict.Replace("§8" + clean)
-                HideAction.COMPACT -> Verdict.Replace(raw) // compact = garde les couleurs d'origine
+                // Beautifier par message si dispo, sinon brut (couleurs d'origine).
+                HideAction.COMPACT -> Verdict.Replace(GroupCompacts.beautify(clean, raw)?.let { theme(it, cfg) } ?: raw)
             }
         }
         // Patterns custom (toujours masqués).
@@ -238,11 +239,13 @@ object ChatRules {
             }),
         Rule("rare-reward", Category.SKYBLOCK, RuleAction.COMPACT,
             Pattern.compile("^RARE REWARD! .+ found a .+ in their .+ Chest!"),
-            beautify = { c, _ ->
+            beautify = { c, raw ->
                 val who = Regex("RARE REWARD! (.+?) found a").find(c)?.groupValues?.get(1) ?: "?"
-                val item = Regex("found a (.+?) in their").find(c)?.groupValues?.get(1) ?: ""
                 val chest = Regex("in their (.+?) Chest").find(c)?.groupValues?.get(1) ?: ""
-                "§6§lRARE REWARD §r§f$who §7· §f$item §7in §f$chest Chest"
+                // Item pris dans le raw pour garder sa couleur de rareté.
+                val item = GroupCompacts.rawItem(raw, "in their")
+                    ?: "§f" + (Regex("found a (.+?) in their").find(c)?.groupValues?.get(1) ?: "")
+                "§6§lRARE REWARD §r§f$who §7· §r$item §fin $chest Chest"
             }),
         Rule("gexp", Category.SKYBLOCK, RuleAction.COMPACT,
             Pattern.compile("^You earned [\\d,]+ GEXP \\+ [\\d,]+ Event EXP from playing"),
@@ -253,8 +256,12 @@ object ChatRules {
             }),
     )
 
+    /** Thème compact : recolore les mots blancs (§f) de NOS compacts avec la couleur choisie. */
+    private fun theme(s: String, cfg: RuleConfig): String =
+        if (!cfg.compactTheme) s else s.replace("§f", "§#%06X".format(cfg.compactThemeColor and 0xFFFFFF))
+
     /** "2,637,430.3" -> "2.6M". Abrège les gros nombres pour les lignes compactes. */
-    private fun shortNum(raw: String): String {
+    internal fun shortNum(raw: String): String {
         val n = raw.replace(",", "").substringBefore(".").toLongOrNull() ?: return raw
         val l = java.util.Locale.ROOT
         return when {

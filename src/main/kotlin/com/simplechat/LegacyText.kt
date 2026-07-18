@@ -29,6 +29,16 @@ object LegacyText {
         var i = 0
         while (i < input.length) {
             val ch = input[i]
+            // Couleur RGB custom `§#RRGGBB` (thème compact) — hors palette vanilla.
+            if ((ch == '§' || ch == '&') && i + 7 < input.length && input[i + 1] == '#') {
+                val hex = input.substring(i + 2, i + 8).toIntOrNull(16)
+                if (hex != null) {
+                    flush()
+                    color = hex; bold = false; italic = false; under = false; strike = false; obf = false
+                    i += 8
+                    continue
+                }
+            }
             if ((ch == '§' || ch == '&') && i + 1 < input.length) {
                 val code = input[i + 1].lowercaseChar()
                 flush()

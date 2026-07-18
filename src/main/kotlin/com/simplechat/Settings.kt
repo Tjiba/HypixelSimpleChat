@@ -34,6 +34,12 @@ object Settings : HscConfig("simplechat/config") {
     }
     var timestampColor by color(Color(0x555555).rgb) { name = "Timestamp color" }
 
+    var compactTheme by boolean(false) {
+        name = "Compact color theme"
+        description = "Recolor the white words of compact messages with your theme color — one consistent look"
+    }
+    var compactThemeColor by color(Color(0x55FFFF).rgb) { name = "Theme color" }
+
     var chatTabs by boolean(true) {
         name = "Enable chat tabs"
         description = "Show the All/Party/Guild tab row above the chat input"
