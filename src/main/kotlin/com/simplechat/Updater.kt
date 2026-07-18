@@ -62,8 +62,11 @@ object Updater {
         }
     }
 
+    /** Ignore les suffixes pre-release/build ("1.1.0-beta", "1.0.0+mc26.2" → "1.1.0", "1.0.0"). */
+    private fun baseVersion(v: String) = v.substringBefore('-').substringBefore('+')
+
     fun compareVersions(v1: String, v2: String): Int = try {
-        val p1 = v1.split("."); val p2 = v2.split(".")
+        val p1 = baseVersion(v1).split("."); val p2 = baseVersion(v2).split(".")
         var result = 0
         for (i in 0 until maxOf(p1.size, p2.size)) {
             val n1 = if (i < p1.size) p1[i].toInt() else 0
