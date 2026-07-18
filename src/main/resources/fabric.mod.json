@@ -9,14 +9,15 @@
   "icon": "assets/simplechat/icon.png",
   "environment": "client",
   "entrypoints": {
-    "client": [ { "adapter": "kotlin", "value": "com.simplechat.SimpleChatMod" } ]${mm_entry}
+    "client": [ { "adapter": "kotlin", "value": "com.simplechat.SimpleChatMod" } ],
+    "modmenu": [ { "adapter": "kotlin", "value": "com.simplechat.HscModMenu" } ]
   },
   "mixins": [
     "simplechat.mixins.json"
   ],
   "depends": {
     "fabricloader": ">=0.18.0",
-    "minecraft": "~${minecraft_range}",
+    "minecraft": ">=26.1 <26.3",
     "java": ">=25",
     "fabric-api": "*",
     "fabric-language-kotlin": "*"
