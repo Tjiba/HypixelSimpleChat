@@ -1,0 +1,32 @@
+=== TITRE (choisis-en un) ===
+[MOD] Hypixel Simple Chat — clean chat, tabs, Ctrl+F search, your colors (Fabric, free & open source)
+Hypixel Simple Chat — I got tired of chat spam, so I made a mod that fixes it
+[Fabric] Simple Chat — compact the spam, keep the info (SkyBlock + lobbies)
+
+=== POST (BBCode, section Mods du forum Hypixel) ===
+
+[CENTER][SIZE=6][B]💬 Hypixel Simple Chat[/B][/SIZE]
+[I]Your chat. Your rules.[/I]
+
+[IMG]ADD_BEFORE_AFTER_IMAGE_URL[/IMG][/CENTER]
+
+Hey! I got tired of scrolling through damage spam and sack notifications to find my party chat, so I built a client-side Fabric mod that rewrites Hypixel chat live — shorter, dimmer, or hidden, [B]your choice per message[/B]. Nothing is deleted behind your back: it's a beautifier, not a censor, and one master switch puts everything back to vanilla.
+
+[B]What it does:[/B]
+[LIST]
+[*][B]60+ compact formats[/B] — [ICODE]Your Hyperion hit 3 enemies for 2,500,000 damage.[/ICODE] becomes [ICODE]Hyperion · 2.5M[/ICODE]. Dungeons, bazaar, slayer, sacks, boosters, NPC dialog…
+[*][B]Per-message dropdowns[/B] — keep / dim / compact / hide, with a live preview in the config menu
+[*][B]Chat tabs[/B] (All / Party / Guild) — route what you send or filter what you see
+[*][B]Ctrl+F search[/B] in chat + [B]right-click to copy[/B] any line + [B]2048 messages[/B] of history
+[*][B]Theme color[/B] — unify all compact messages with your color (rarity colors stay)
+[*][B]Auto-collapse[/B] — repeated messages fold into one line with a (xN) counter
+[*]Guild [B]Discord bridge[/B] cleanup (works great with a bridge bot)
+[/LIST]
+
+Client-side only, ~320 KB, no bundled dependencies, open source (LGPL-3.0). MC [B]26.1.2[/B] and [B]26.2[/B], Fabric.
+
+[B]Download:[/B] [URL='https://modrinth.com/mod/hypixel-simple-chat']Modrinth[/URL] · [URL='https://github.com/Tjiba/HypixelSimpleChat']GitHub[/URL]
+
+The compact formats are [B]community-driven[/B] — if a message isn't handled or you'd format it differently, tell me on [URL='https://discord.gg/AbyVvwqmUF']Discord[/URL] or open an issue and I'll add it. Feedback very welcome, it's my first public release of this one. 🙂
+
+[I]MeteoFrance in-game — say hi![/I]
