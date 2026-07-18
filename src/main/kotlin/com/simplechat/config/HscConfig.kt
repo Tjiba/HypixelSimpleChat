@@ -79,9 +79,12 @@ abstract class HscConfig(path: String) : ConfigGroup() {
 
     protected fun category(cat: HscCategory) { categories[cat.id] = cat }
 
+    /** Appelé quand aucun fichier config n'existe (tout premier lancement). */
+    protected open fun firstLaunch() {}
+
     fun load() {
         val source = file.takeIf { Files.exists(it) } ?: legacyFile.takeIf { Files.exists(it) }
-        if (source == null) { save(); return }
+        if (source == null) { firstLaunch(); save(); return }
         runCatching {
             // parseString est lenient : tolère les commentaires // du jsonc legacy.
             val root = JsonParser.parseString(Files.readString(source)).asJsonObject

@@ -122,11 +122,11 @@ object HideUseless {
             "\\[Bazaar] Submitting buy order\\.\\.\\.",
             "(?:Buy Order|Sell Offer) Setup! .+",
         ),
+        // ✆ RING retiré : c'est la sonnerie Abiphone (actionnable), pas du spam slayer.
         HideGroup.SLAYER to p(
             " *SLAYER QUEST STARTED!",
             " *SLAYER QUEST COMPLETE!",
             " *» Slay .+ Combat XP worth of .+",
-            "✆ RING\\.\\.\\..*",
         ),
         HideGroup.EVENTS to p(
             "Started parkour .+!",

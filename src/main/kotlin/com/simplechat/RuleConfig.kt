@@ -92,6 +92,7 @@ data class RuleConfig(
                 "morph-wardrobe" to LobbyCleanup.morphWardrobe,
                 "npc-dialog" to SkyBlockCleanup.npcDialog,
                 "pet-summon" to SkyBlockCleanup.petSummon,
+                "abiphone-ring" to SkyBlockCleanup.abiphoneRing,
                 "boss" to SkyBlockCleanup.boss,
                 "damage-spam" to SkyBlockCleanup.damageSpam,
                 "kill-combo" to SkyBlockCleanup.killCombo,

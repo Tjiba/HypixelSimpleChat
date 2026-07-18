@@ -209,6 +209,11 @@ object ChatRules {
                 val name = c.substringAfter("your ").removeSuffix("!").trim()
                 if (c.startsWith("Spawned")) "§a+ §f$name" else "§c- §f$name"
             }),
+        // Sonnerie Abiphone : masquée par défaut — la ligne du NPC avec le bouton cliquable
+        // n'est jamais touchée (garde-fou ClickEvent dans ChatHudMixin).
+        Rule("abiphone-ring", Category.SKYBLOCK, RuleAction.HIDE,
+            Pattern.compile("^✆ RING"),
+            beautify = { _, _ -> "§a✆ §7Ring…" }),
         // Pets SkyBlock : même logique +/- que le lobby, mais la couleur de rareté du raw est gardée.
         Rule("pet-summon", Category.SKYBLOCK, RuleAction.COMPACT,
             Pattern.compile("^You (summoned|despawned) your .+"),

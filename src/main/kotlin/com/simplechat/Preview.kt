@@ -31,8 +31,9 @@ object Preview {
     )
     // Ordre calé sur le menu SkyBlock : General, World & Events, Combat, Economy, puis Islands.
     private val SKYBLOCK = listOf(
-        // General (petSummon)
+        // General (petSummon, abiphoneRing)
         "§aYou summoned your §6Baby Yeti§a!",
+        "§a✆ RING... RING...",
         // World & Events (npcDialog, events, rewards, misc)
         "§e[NPC] Jerry§f: What can I do for you?",
         "Started parkour Foraging Island!",

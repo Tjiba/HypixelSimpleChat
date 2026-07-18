@@ -109,6 +109,14 @@ class ChatRulesTest {
             ChatRules.evaluate("§7Right-Click with the §aSlimeball §7selected to activate", b))
     }
 
+    @Test fun `abiphone ring hidden by default, compactable`() {
+        assertEquals(Verdict.Hide,
+            ChatRules.evaluate("§a✆ RING... RING...", cfg))
+        val b = cfg.copy(actions = mapOf("abiphone-ring" to RuleAction.COMPACT))
+        assertEquals(Verdict.Replace("§a✆ §7Ring…"),
+            ChatRules.evaluate("§a✆ RING...", b))
+    }
+
     @Test fun `skyblock pet summon keeps rarity color`() {
         assertEquals(Verdict.Replace("§a+ §r§6Baby Yeti"),
             ChatRules.evaluate("§aYou summoned your §6Baby Yeti§a!", cfg))
