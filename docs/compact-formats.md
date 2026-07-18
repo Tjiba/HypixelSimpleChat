@@ -33,10 +33,6 @@ COMPACT:
 
 ## SkyBlock
 
-**[6] Raffle**
-RAW: `RAFFLE! Notch won 5000 coins in Speed Raffle #12!`
-COMPACT:'§l§6RAFFLE! §rname · item daily#12
-
 **[7] Boss message**
 RAW: `[BOSS] Maxor: I've been expecting you.`
 COMPACT: Maxor: message

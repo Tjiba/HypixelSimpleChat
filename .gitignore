@@ -27,3 +27,6 @@ docs/superpowers/
 
 # Brainstorming session artifacts
 .superpowers/
+
+# Local test builds
+test-jars/

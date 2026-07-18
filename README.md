@@ -9,9 +9,9 @@
 [![Minecraft](https://img.shields.io/badge/Minecraft-26.1.2%20%7C%2026.2-brightgreen)](#)
 [![Loader](https://img.shields.io/badge/Loader-Fabric-blue)](https://fabricmc.net/)
 [![Language](https://img.shields.io/badge/Kotlin-2.2-purple)](https://kotlinlang.org/)
-[![License](https://img.shields.io/badge/License-MIT-lightgrey)](LICENSE)
+[![License](https://img.shields.io/badge/License-LGPL--3.0-blue)](LICENSE)
 
-[Modrinth](https://modrinth.com/mod/hypixel-simple-chat) · [Discord](https://discord.gg/6y35KkQ7h6)
+[Modrinth](https://modrinth.com/mod/hypixel-simple-chat) · [Discord](https://discord.gg/AbyVvwqmUF)
 
 </div>
 
@@ -32,6 +32,10 @@ Turn the master switch off and your chat is **100% untouched**.
 | **Cleaner channels** | Guild, Party & Public with your own colors, ranks and prefixes. |
 | **Guild Discord bridge** | Tidies Discord messages relayed into guild chat. |
 | **Auto-collapse** | Repeated lines fold into one with a `(xN)` counter. |
+| **Chat tabs** | All / Party / Guild above the input — route your messages or filter the view. |
+| **Ctrl+F search** | Live-filter your chat history right from the chat input. |
+| **Right-click to copy** | Right-click any chat line to copy it. |
+| **Extended history** | Keep up to 2048 messages instead of vanilla's 100. |
 | **Live preview** | Watch your chat change as you tweak the settings. |
 | **Timestamps** | Optional `[HH:MM]` on every line. |
 
@@ -42,7 +46,7 @@ Turn the master switch off and your chat is **100% untouched**.
 | `/hsc` | Open the settings screen |
 | `/hsc update` | Check for a newer version |
 
-Settings are also reachable through **Mod Menu**, and there's a native **Discord** link in the config header.
+Settings are also reachable through **Mod Menu** (26.1), and there's a **Discord** button right in the menu.
 
 ## Requirements
 
@@ -50,7 +54,6 @@ Settings are also reachable through **Mod Menu**, and there's a native **Discord
 - [Fabric Loader](https://fabricmc.net/) `>= 0.18.0`
 - [Fabric API](https://modrinth.com/mod/fabric-api)
 - [Fabric Language Kotlin](https://modrinth.com/mod/fabric-language-kotlin)
-- [Resourceful Config](https://modrinth.com/mod/resourceful-config) *(bundled in the jar)*
 
 ## Install
 
@@ -62,4 +65,4 @@ Settings are also reachable through **Mod Menu**, and there's a native **Discord
 
 ## License
 
-[MIT](LICENSE) © Tjiba
+[LGPL-3.0](LICENSE) © Tjiba

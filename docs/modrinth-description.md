@@ -1,21 +1,25 @@
 <div align="center">
 
-# 💬 Hypixel Simple Chat 💬
+# 💬 Hypixel Simple Chat
 
 ### Your chat. Your rules.
 
 <!-- TODO: remplace par une capture du menu / avant-après -->
-<img width="265" alt="preview" src="ADD_PREVIEW_IMAGE_URL" />
+<img width="480" alt="Hypixel Simple Chat" src="ADD_PREVIEW_IMAGE_URL" />
 
 </div>
 
 ---
 
-Hypixel's chat is a mess — damage numbers, kill combos, sacks, NPC babble, lobby
-spam. **Hypixel Simple Chat** tidies it into clean, compact lines, **without hiding
-anything you didn't ask it to**. A beautifier, not a filter.
+Hypixel chat is a mess — damage numbers, sacks, lobby spam burying the messages you
+actually care about. **Hypixel Simple Chat** tidies it into clean, readable lines.
+A beautifier, not a filter: nothing is deleted behind your back.
 
-## 👀 Before → after
+Every message type gets a one-click dropdown — keep it, dim it, compact it or hide it
+— and a **live preview** shows exactly how it'll look. Want your plain chat back?
+Flip the master switch and it's **100% untouched**.
+
+## 👀 See it in action
 
 | Hypixel sends | Simple Chat shows |
 |---|---|
@@ -24,41 +28,42 @@ anything you didn't ask it to**. A beautifier, not a filter.
 | `[Sacks] +64 Cobblestone` | `+64 Cobblestone` |
 | `[NPC] Jerry: What can I do for you?` | `Jerry: What can I do for you?` |
 
-## 🎛️ You choose, message by message
+Same info, a fraction of the clutter.
 
-Every message type has a one-click dropdown:
-**OFF** (untouched) · **GREY** (dimmed) · **COMPACT** (short one-liner) ·
-**COMPACT_GREY** (short + dimmed) · **HIDE** (removed).
+## ✨ What you get
 
-Everything's on and tunable in `/hsc` — with a **live preview** so you watch your
-chat change as you tweak, before you close the menu. `/hsc update` checks for a new
-version.
+| Feature | What it does |
+|---|---|
+| **Compact the spam** | Damage, combos, sacks, boss, rewards… shrunk to one-liners. |
+| **You choose, per message** | `OFF` · `GREY` · `COMPACT` · `HIDE` for every message type. |
+| **Cleaner channels** | Guild, Party & Public with your own colors, ranks and prefixes. |
+| **Guild Discord bridge** | Tidies Discord messages relayed into guild chat. |
+| **Auto-collapse** | Repeated lines fold into one with a `(xN)` counter. |
+| **Chat tabs** | All / Party / Guild above the input — route your messages or filter the view. |
+| **Ctrl+F search** | Live-filter your chat history right from the chat input. |
+| **Right-click to copy** | Right-click any chat line to copy it. |
+| **Extended history** | Keep up to 2048 messages instead of vanilla's 100. |
+| **Live preview** | Watch your chat change as you tweak — no guessing. |
+| **Timestamps** | Optional `[HH:MM]` on every line. |
 
-It also cleans **Guild / Party / Public** channels with your own RGB colors, ranks
-and prefixes (Discord bridge supported), folds repeated messages into `(x12)`, and
-can prefix every line with `[HH:MM]` timestamps.
+## 📦 Getting started
 
-Needs **Fabric API** + **[Fabric Language Kotlin](https://modrinth.com/mod/fabric-language-kotlin)**.
-
----
-
-## 🛡️ Safe by design
-
-Never touches your DMs, guild & party conversations, rare drops, slayer loot or boss
-recaps — those always come through untouched. Client-side only, and it works happily
-alongside other chat mods (including **[GuildZip](https://modrinth.com/mod/guildzip)**).
+Grab **Fabric API** and **[Fabric Language Kotlin](https://modrinth.com/mod/fabric-language-kotlin)**
+(both free), drop the jar into your `mods` folder, then run `/hsc` in-game.
+You'll also find it in **Mod Menu**.
 
 ---
 
 <div align="center">
 
-Made with ❤️ by **[Tjiba](https://github.com/Tjiba)** • MeteoFrance in-game
-rejoins notre guilde : [FrenchLegacy](https://frenchlegacy.fr)
+Made by a Hypixel player, for Hypixel players. If it makes your chat nicer, a ⭐ or a
+quick review means a lot — and if a message isn't compacted the way you'd like, come
+tell us!
 
-**[⬇ Download](https://modrinth.com/mod/hypixel-simple-chat)** &nbsp;·&nbsp; **[🐛 Report a bug](https://github.com/Tjiba/HypixelSimpleChat/issues)** &nbsp;·&nbsp; **[📋 Changelog](https://github.com/Tjiba/HypixelSimpleChat/blob/master/CHANGELOG.md)**
+**[💬 Discord](https://discord.gg/AbyVvwqmUF)** &nbsp;·&nbsp; **[💻 GitHub](https://github.com/Tjiba/HypixelSimpleChat)** &nbsp;·&nbsp; **[🐛 Report a bug](https://github.com/Tjiba/HypixelSimpleChat/issues)**
 
 <br>
 
-*⭐ If Simple Chat helps you, a review goes a long way!*
+*Client-side only, safe on any server. Made with ❤️ by [Tjiba](https://github.com/Tjiba) • rejoins notre guilde : [FrenchLegacy](https://frenchlegacy.fr)*
 
 </div>
