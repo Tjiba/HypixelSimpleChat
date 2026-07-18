@@ -12,32 +12,15 @@ body:
         Example format: `§6Booster §f2x §7· 2h`
 
   - type: dropdown
-    id: message
+    id: category
     attributes:
-      label: Which message?
-      description: Pick the message you want to give a compact format.
+      label: Category
+      description: Where does this message show up?
       options:
-        - "Lobby · Pet spawn/despawn — Spawned your Bat!"
-        - "Lobby · Radiating generosity — You are still radiating with generosity!"
-        - "Lobby · Playtime ticket — PLAYTIME! You gained a Playtime Chest!"
-        - "Lobby · Reward link — Click the link to visit our website…"
-        - "Lobby · Morph / wardrobe — You are now morphed into a Cow!"
-        - "Lobby · Raffle — RAFFLE! Notch won 5000 coins in Speed Raffle #12!"
-        - "SkyBlock · Boss message — [BOSS] Maxor: I've been expecting you."
-        - "System · Server routing — Sending to server mini42S…"
-        - "System · Profile ID — Profile ID: 12ab34-cd56ef"
-        - "SkyBlock group · Dungeons"
-        - "SkyBlock group · Abilities / cooldowns"
-        - "SkyBlock group · Combat / heal"
-        - "SkyBlock group · Rewards / drops"
-        - "SkyBlock group · Misc"
-        - "SkyBlock group · Bazaar / Auction House"
-        - "SkyBlock group · Slayer"
-        - "SkyBlock group · Events"
-        - "SkyBlock group · Warnings"
-        - "Lobby group · Notifications"
-        - "System group · Transitions"
-        - "Other (describe below)"
+        - "Lobby"
+        - "SkyBlock"
+        - "System"
+        - "Other"
     validations:
       required: true
 

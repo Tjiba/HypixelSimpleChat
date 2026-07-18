@@ -22,3 +22,5 @@ bin/
 .DS_Store
 Thumbs.db
 
+# Local test builds
+test-jars/
