@@ -26,3 +26,23 @@ jobs:
         with:
           name: HypixelSimpleChat
           path: build/libs/*.jar
+
+  # Tag v* → release GitHub avec le jar en téléchargement direct (pas de zip, contrairement aux artifacts).
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 25
+      - uses: gradle/actions/setup-gradle@v4
+      - run: ./gradlew build -Pmc=26.2 -x test
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: build/libs/HypixelSimpleChat-*.jar
+          generate_release_notes: true
