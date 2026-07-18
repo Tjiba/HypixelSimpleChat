@@ -21,11 +21,14 @@ jobs:
       - name: Build & test (MC ${{ matrix.mc }})
         run: ./gradlew build -Pmc=${{ matrix.mc }}
       # Un seul jar universel publié (build 26.2) ; le job 26.1 ne sert que de vérif de compilation.
-      - uses: actions/upload-artifact@v4
+      # archive: false → le jar se télécharge directement, sans zip.
+      - uses: actions/upload-artifact@v7.0.1
         if: matrix.mc == '26.2'
         with:
           name: HypixelSimpleChat
           path: build/libs/*.jar
+          if-no-files-found: error
+          archive: false
 
   # Tag v* → release GitHub avec le jar en téléchargement direct (pas de zip, contrairement aux artifacts).
   release:
