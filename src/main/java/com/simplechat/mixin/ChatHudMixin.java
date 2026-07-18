@@ -1,10 +1,13 @@
 package com.simplechat.mixin;
 
 import com.simplechat.ChatRules;
+import com.simplechat.HscChatAccess;
+import com.simplechat.IHscChat;
 import com.simplechat.LegacyText;
 import com.simplechat.RuleConfig;
 import com.simplechat.Seg;
 import com.simplechat.Verdict;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.ChatComponent;
 import net.minecraft.client.multiplayer.chat.GuiMessage;
 import net.minecraft.client.multiplayer.chat.GuiMessageSource;
@@ -12,16 +15,19 @@ import net.minecraft.client.multiplayer.chat.GuiMessageTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MessageSignature;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.gen.Accessor;
 import org.spongepowered.asm.mixin.gen.Invoker;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Constant;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyConstant;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.List;
 
 @Mixin(ChatComponent.class)
-public abstract class ChatHudMixin {
+public abstract class ChatHudMixin implements IHscChat {
 
     private static final ThreadLocal<Boolean> HSC_REENTRANT = ThreadLocal.withInitial(() -> false);
 
@@ -38,8 +44,117 @@ public abstract class ChatHudMixin {
     @Accessor("allMessages")
     abstract List<GuiMessage> hsc$allMessages();
 
+    @Accessor("trimmedMessages")
+    abstract List<GuiMessage.Line> hsc$trimmedLines();
+
+    @Accessor("chatScrollbarPos")
+    abstract int hsc$scrollPos();
+
+    @Invoker("getScale")
+    abstract double hsc$getScale();
+
+    @Invoker("getLineHeight")
+    abstract int hsc$getLineHeight();
+
+    @Invoker("getLinesPerPage")
+    abstract int hsc$getLinesPerPage();
+
+    @Invoker("isChatFocused")
+    abstract boolean hsc$isFocused();
+
     @Invoker("refreshTrimmedMessages")
     abstract void hsc$refreshTrimmed();
+
+    // Le ChatComponent actif s'enregistre (le ChatScreenMixin le récupère sans Gui.getChat(), absent en 26.2).
+    // require=0 : feature confort — si MC change la signature, on dégrade au lieu de crasher.
+    @Inject(method = "<init>", at = @At("TAIL"), require = 0)
+    private void hsc$register(Minecraft mc, CallbackInfo ci) {
+        HscChatAccess.current = this;
+    }
+
+    @Shadow
+    public abstract void setVisibleMessageFilter(java.util.function.Predicate<GuiMessage> filter);
+
+    private int hsc$tabCode = 0;   // 0=All, 1=Party, 2=Guild(+Officer)
+    private String hsc$query = "";
+
+    @Override
+    public void hsc$setChannelFilter(int tabCode) {
+        hsc$tabCode = tabCode;
+        hsc$reapplyFilter();
+    }
+
+    @Override
+    public int hsc$applySearch(String query) {
+        hsc$query = query == null ? "" : query.trim();
+        return hsc$reapplyFilter();
+    }
+
+    /** Reconstruit le prédicat combiné (onglet + recherche) et l'applique. Renvoie le nb de correspondances. */
+    private int hsc$reapplyFilter() {
+        final int tab = hsc$tabCode;
+        final String q = hsc$query.toLowerCase(java.util.Locale.ROOT);
+        final String[] tokens = q.isEmpty() ? new String[0] : q.split("\\s+");
+        java.util.function.Predicate<GuiMessage> pred = m -> {
+            String content = m.content().getString();
+            if (tab != 0) {
+                com.simplechat.Channel ch = ChatRules.INSTANCE.classify(hsc$stripLead(content));
+                boolean ok = switch (tab) {
+                    case 1 -> ch == com.simplechat.Channel.PARTY;
+                    case 2 -> ch == com.simplechat.Channel.GUILD || ch == com.simplechat.Channel.OFFICER;
+                    default -> true;
+                };
+                if (!ok) return false;
+            }
+            if (tokens.length > 0) {
+                String s = content.toLowerCase(java.util.Locale.ROOT);
+                for (String t : tokens) if (!s.contains(t)) return false;
+            }
+            return true;
+        };
+        setVisibleMessageFilter(pred);
+        hsc$refreshTrimmed();
+        if (tab == 0 && tokens.length == 0) return -1;
+        int count = 0;
+        try { for (GuiMessage m : hsc$allMessages()) if (pred.test(m)) count++; } catch (Throwable ignored) {}
+        return count;
+    }
+
+    /** Retire un éventuel timestamp de tête "[HH:MM] " pour que classify voie le préfixe de canal. */
+    private static String hsc$stripLead(String s) {
+        if (s.length() >= 8 && s.charAt(0) == '[' && s.charAt(3) == ':' && s.charAt(6) == ']' && s.charAt(7) == ' ')
+            return s.substring(8);
+        return s;
+    }
+
+    /** Message affiché sous le curseur : géométrie du chat recalculée (pas de helper vanilla). */
+    @Override
+    public GuiMessage hsc$messageAt(double mouseX, double mouseY) {
+        try {
+            if (!hsc$isFocused()) return null;
+            List<GuiMessage.Line> lines = hsc$trimmedLines();
+            if (lines == null || lines.isEmpty()) return null;
+            double scale = hsc$getScale();
+            int guiH = Minecraft.getInstance().getWindow().getGuiScaledHeight();
+            double x = mouseX / scale - 4.0;
+            double y = (guiH - mouseY - 40.0) / scale / (double) hsc$getLineHeight();
+            if (x < 0.0 || y < 0.0) return null;
+            int visible = Math.min(hsc$getLinesPerPage(), lines.size());
+            if (y >= visible) return null;
+            int idx = (int) Math.floor(y) + hsc$scrollPos();
+            if (idx < 0 || idx >= lines.size()) return null;
+            return lines.get(idx).parent();
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    // Historique étendu : remplace la limite vanilla de 100 (allMessages + lignes visibles) par le réglage.
+    // require=0 : si un patch MC déplace la constante, on retombe sur les 100 vanilla au lieu de crasher.
+    @ModifyConstant(method = {"addMessageToQueue", "addMessageToDisplayQueue"}, constant = @Constant(intValue = 100), require = 0)
+    private int hsc$maxHistory(int original) {
+        return Math.max(100, Math.min(2048, com.simplechat.Settings.INSTANCE.getMaxMessages()));
+    }
 
     @Inject(
         method = "addMessage(Lnet/minecraft/network/chat/Component;Lnet/minecraft/network/chat/MessageSignature;Lnet/minecraft/client/multiplayer/chat/GuiMessageSource;Lnet/minecraft/client/multiplayer/chat/GuiMessageTag;)V",
@@ -52,7 +167,12 @@ public abstract class ChatHudMixin {
 
         RuleConfig cfg = RuleConfig.Companion.current();
         String legacy = hsc$toLegacy(original);
+        // Avertissement Discord greffé par Hypixel : toujours retiré, sans toggle.
+        String stripped = ChatRules.INSTANCE.stripDiscordWarning(legacy);
+        boolean warned = !stripped.equals(legacy);
+        legacy = stripped;
         String clean = ChatRules.INSTANCE.clean(legacy);
+        if (warned && clean.isEmpty()) { ci.cancel(); return; }
         Verdict v = com.simplechat.HoppityCompact.INSTANCE.process(clean, cfg.getCompactHoppity());
         if (v == null) v = ChatRules.INSTANCE.evaluate(legacy, cfg);
 
@@ -76,9 +196,9 @@ public abstract class ChatHudMixin {
         } else if (v instanceof Verdict.Replace rv) {
             base = build(rv.getLegacy());
         } else {
-            base = original; // Pass
+            base = warned ? build(legacy) : original; // Pass (rebuild si l'avertissement a été retiré)
         }
-        boolean untouched = v instanceof Verdict.Pass;
+        boolean untouched = v instanceof Verdict.Pass && !warned;
         hsc$display(base, key, untouched, cfg, signature, source, tag, ci);
     }
 
