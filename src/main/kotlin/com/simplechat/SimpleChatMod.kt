@@ -4,8 +4,6 @@ import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback
 import net.fabricmc.fabric.api.client.command.v2.ClientCommands
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
-import com.teamresourceful.resourcefulconfig.api.loader.Configurator
-import com.teamresourceful.resourcefulconfig.api.types.ResourcefulConfig
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.network.chat.Component
@@ -13,15 +11,12 @@ import org.slf4j.LoggerFactory
 
 object SimpleChatMod : ClientModInitializer {
     @JvmField val LOGGER = LoggerFactory.getLogger("simplechat")
-    @JvmField val configurator = Configurator("simplechat")
 
-    /** Config RC enregistré (renvoyé par register) — source unique, évite de deviner l'id de config. */
-    @JvmField var config: ResourcefulConfig? = null
     private var pendingConfig = false
 
     override fun onInitializeClient() {
         LOGGER.info(Msg.MOD_LOADED.get())
-        config = Settings.register(configurator)
+        Settings.load()
         Updater.init()
 
         ClientCommandRegistrationCallback.EVENT.register { dispatcher, _ ->
