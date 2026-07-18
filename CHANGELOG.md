@@ -21,4 +21,4 @@ Initial release.
 - Update checker — `/hsc update`.
 
 ### Supported
-- Minecraft **26.1.2** and **26.2** (Fabric).
+- Minecraft **26.1.2** and **26.2** (Fabric) — one universal jar.

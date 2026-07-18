@@ -5,16 +5,18 @@ plugins {
 }
 
 def mcTarget = (project.findProperty('mc') ?: '26.2').toString()
+// Jar universel : mêmes sources et mêmes intermediary sur tout 26.x → un seul jar publié
+// (build 26.2). La cible 26.1 sert de vérification de compilation (CI).
 def mcSets = [
     '26.1': [minecraft: '26.1.2', fabric_api: '0.151.0+26.1.2', modmenu: '18.0.0-beta.1'],
-    '26.2': [minecraft: '26.2',   fabric_api: '0.153.0+26.2',   modmenu: null],
+    '26.2': [minecraft: '26.2',   fabric_api: '0.153.0+26.2',   modmenu: '19.0.0-alpha.1'],
 ]
 def mcv = mcSets[mcTarget]
 if (mcv == null) throw new GradleException("Unknown -Pmc=${mcTarget} (use 26.1 or 26.2)")
 
 version = project.mod_version
 group = project.maven_group
-base { archivesName = "${project.archives_base_name}-mc${mcTarget}" }
+base { archivesName = project.archives_base_name }
 
 repositories {
     maven { url 'https://maven.fabricmc.net/' }
@@ -49,11 +51,9 @@ loom {
 
 processResources {
     inputs.property "version", project.version
-    inputs.property "minecraft_range", mcTarget
     duplicatesStrategy = 'EXCLUDE'
     filesMatching("fabric.mod.json") {
-        expand "version": project.version, "minecraft_range": mcTarget,
-            "mm_entry": (mcv.modmenu != null ? ",\n    \"modmenu\": [ { \"adapter\": \"kotlin\", \"value\": \"com.simplechat.HscModMenu\" } ]" : "")
+        expand "version": project.version
     }
 }
 
