@@ -209,7 +209,7 @@ class MenuScreen(private val parent: Screen?) : Screen(
         buildItems(); rebuildPreview()
     }
 
-    private fun onValueChanged() = rebuildPreview()
+    private fun onValueChanged() { presetChoice = null; rebuildPreview() }
 
     // --- rendu ---
     override fun extractRenderState(gfx: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, delta: Float) {
@@ -352,22 +352,18 @@ class MenuScreen(private val parent: Screen?) : Screen(
         val y = presetBtnY(top)
         for ((label, x1, x2) in presetButtons(top)) {
             val hover = inRect(mx, my, x1, y, x2, y + MenuTheme.WIDGET_H)
-            val accent = label == "Recommended"
+            val accent = label == presetChoice
             rr(gfx, x1, y, x2, y + MenuTheme.WIDGET_H, 4, if (accent) MenuTheme.ACCENT else if (hover) MenuTheme.FIELD_HOVER else MenuTheme.FIELD)
             gfx.centeredText(font, label, (x1 + x2) / 2, y + (MenuTheme.WIDGET_H - font.lineHeight) / 2, if (accent) MenuTheme.TEXT_TITLE else MenuTheme.TEXT)
         }
     }
 
     private fun applyPreset(recommended: Boolean) {
-        if (recommended) {
-            val txt = javaClass.getResourceAsStream("/assets/simplechat/presets/recommended.json")
-                ?.bufferedReader()?.use { it.readText() }
-            if (txt != null) Settings.applyPreset(txt) else Settings.resetToDefaults()
-        } else {
-            Settings.resetToDefaults()
-        }
+        if (recommended) { if (!Settings.applyRecommended()) Settings.resetToDefaults() }
+        else Settings.resetToDefaults()
         Settings.save()
         onValueChanged()
+        presetChoice = if (recommended) "Recommended" else "Default" // après onValueChanged (qui l'efface)
     }
 
     private fun renderPreview(gfx: GuiGraphicsExtractor) {
@@ -744,6 +740,9 @@ class MenuScreen(private val parent: Screen?) : Screen(
         s.trim().removePrefix("#").takeIf { it.isNotEmpty() }?.toIntOrNull(16)?.and(0xFFFFFF)
 
     companion object {
+        // Dernier preset appliqué (surligné) ; effacé dès qu'une valeur est modifiée à la main.
+        private var presetChoice: String? = null
+
         // Ordre des catégories dans la sidebar (null = General).
         private val NAV_ORDER = listOf<String?>(null, "Public Chat", "Party Chat", "Guild Chat", "SkyBlock", "Lobby", "System")
 
@@ -761,7 +760,7 @@ class MenuScreen(private val parent: Screen?) : Screen(
         private val VIEWS: Map<String?, LinkedHashMap<String, LinkedHashMap<String, List<String>>>> = mapOf(
             "SkyBlock" to linkedMapOf(
                 "General" to linkedMapOf(
-                    "GENERAL" to listOf("enabled", "petSummon", "customPatterns"),
+                    "GENERAL" to listOf("enabled", "customPatterns", "petSummon", "abiphoneRing"),
                     "WORLD & EVENTS" to listOf("npcDialog", "events", "hoppity", "rewards", "misc"),
                     "COMBAT" to listOf("boss", "damageSpam", "killCombo", "mobAbility", "combat", "abilities", "warnings", "slayer"),
                     "ECONOMY" to listOf("bazaar", "sacks", "lootShare", "gexp", "rareReward"),

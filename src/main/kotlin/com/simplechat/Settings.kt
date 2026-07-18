@@ -49,6 +49,17 @@ object Settings : HscConfig("simplechat/config") {
         description = "When you select a tab — On: show only that channel's messages · Off: send your messages to that channel"
     }
 
+    /** Preset bundlé (config recommandée). false si la ressource manque. */
+    fun applyRecommended(): Boolean {
+        val txt = javaClass.getResourceAsStream("/assets/simplechat/presets/recommended.json")
+            ?.bufferedReader()?.use { it.readText() } ?: return false
+        applyPreset(txt)
+        return true
+    }
+
+    // Tout premier lancement (aucun fichier config) : partir de la config recommandée.
+    override fun firstLaunch() { applyRecommended() }
+
     init {
         category(GuildChat)
         category(PartyChat)
@@ -195,6 +206,10 @@ object SkyBlockCleanup : HscCategory("SkyBlock") {
         name = "Pet summon/despawn"
         description = "'You summoned your …' — compact keeps the pet's rarity color"
     }
+    var abiphoneRing by enum(RuleAction.HIDE) {
+        name = "Abiphone ring"
+        description = "'✆ RING…' lines — the clickable pickup line always stays"
+    }
 
     var npcDialog by enum(RuleAction.GREY) {
         name = "NPC dialog"
@@ -248,7 +263,7 @@ object SkyBlockCleanup : HscCategory("SkyBlock") {
     }
     var slayer by enum(HideAction.HIDE) {
         name = "Slayer"
-        description = "Quest started/complete, boss ring, slay lines"
+        description = "Quest started/complete, slay lines"
     }
     var events by enum(HideAction.HIDE) {
         name = "Events"

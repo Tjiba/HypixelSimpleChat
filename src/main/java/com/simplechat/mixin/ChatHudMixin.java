@@ -183,6 +183,15 @@ public abstract class ChatHudMixin implements IHscChat {
             v = com.simplechat.Verdict.Pass.INSTANCE;
         }
 
+        // Bouton cliquable (accepter un appel Abiphone, rejoindre une party…) : ne pas masquer/
+        // reformater un message SYSTEM — le Replace reconstruit le texte et perdrait le ClickEvent.
+        // Les messages joueurs (Segments) restent formatés : Hypixel met un clic /msg sur tous les
+        // pseudos, le garde-fou bloquerait sinon tout le reformat de canal.
+        if ((v instanceof Verdict.Hide || v instanceof Verdict.Replace || v instanceof Verdict.Compact)
+                && hsc$hasActionClick(original)) {
+            v = com.simplechat.Verdict.Pass.INSTANCE;
+        }
+
         // #3 : collapse intelligent (normalise les nombres) pour les messages système reformatés.
         boolean smart = cfg.getSmartCollapse() && (v instanceof Verdict.Replace);
         String key = smart ? ChatRules.INSTANCE.collapseKey(clean) : clean;
@@ -248,6 +257,19 @@ public abstract class ChatHudMixin implements IHscChat {
     private static Component hsc$withCount(Component base, int count) {
         return Component.empty().append(base)
                 .append(Component.literal(" (x" + count + ")").withStyle(s -> s.withColor(0x555555)));
+    }
+
+    /** true si un style porte un clic-commande (bouton d'action : run/suggest command).
+     *  Les OpenUrl ne comptent pas — les liens web restent compactables. */
+    private static boolean hsc$hasActionClick(Component c) {
+        return c.visit((style, text) -> {
+            net.minecraft.network.chat.ClickEvent e = style.getClickEvent();
+            if (e instanceof net.minecraft.network.chat.ClickEvent.RunCommand
+                    || e instanceof net.minecraft.network.chat.ClickEvent.SuggestCommand) {
+                return java.util.Optional.of(Boolean.TRUE);
+            }
+            return java.util.Optional.empty();
+        }, net.minecraft.network.chat.Style.EMPTY).isPresent();
     }
 
     /** true si un style porte un item/entité linké (ShowItem/ShowEntity). On ignore les ShowText
