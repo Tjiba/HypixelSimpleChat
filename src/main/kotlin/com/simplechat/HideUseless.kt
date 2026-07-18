@@ -75,7 +75,6 @@ object HideUseless {
             "(?:Whow! Slow down there!|Woah slow down, you're doing that too fast!|Please wait a (?:few seconds between refreshing!|bit before doing this!))",
             "The Spirit Bow disintegrates as you fire off the shot!",
             "Giga Lightning.+",
-            "You summoned your.+",
             "Your Auto Recombobulator recombobulated.*",
             "(?:Only up to 2 rules may trigger at once!|Some of your autopet rules did not trigger\\.)",
             "You cannot put this item in the Potion Bag!",

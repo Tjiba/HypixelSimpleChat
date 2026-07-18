@@ -11,6 +11,15 @@ object ChatRules {
     fun clean(raw: String): String =
         COLOR_CODE.matcher(raw).replaceAll("").replace(Regex("\\s+"), " ").trim()
 
+    // Avertissement anti-phishing greffé par Hypixel aux messages contenant "discord" (suffixe inline).
+    private val DISCORD_WARNING = Pattern.compile(
+        "(?:[§&][0-9a-fk-orA-FK-OR]|\\s)*Please be mindful of Discord links in chat as they may pose a security risk\\.?(?:[§&][0-9a-fk-orA-FK-OR]|\\s)*$",
+        Pattern.CASE_INSENSITIVE)
+
+    /** Retire l'avertissement Discord greffé par Hypixel, en gardant le reste du message. */
+    fun stripDiscordWarning(raw: String): String =
+        DISCORD_WARNING.matcher(raw).replaceFirst("")
+
     /** Clé de collapse « intelligente » : normalise les nombres pour fusionner
      *  "hit 3 for 2,200 damage" et "hit 4 for 999 damage" en une seule ligne comptée. */
     fun collapseKey(clean: String): String = clean.replace(Regex("\\d[\\d,.]*"), "#")
@@ -25,7 +34,7 @@ object ChatRules {
     private val CH_WHISPER = Pattern.compile("^(From|To) .+")
     // Message joueur public : (préfixe niveau/emblème optionnel) rank/nom puis ": ".
     // [NPC] est un dialogue SYSTEM, pas un rank -> exclu via lookahead.
-    private val CH_PUBLIC = Pattern.compile("^(?!\\[NPC] )(?!\\[BOSS] )(?!\\[STATUE] )(?:\\[\\d{1,4}] )?(?:⛃ )?(?:\\[[A-Za-z+]+] )?[\\w]+: .+")
+    private val CH_PUBLIC = Pattern.compile("^(?!\\[NPC] )(?!\\[BOSS] )(?!\\[STATUE] )(?:\\[\\d{1,4}] )?(?:[^\\[\\w\\s]\\S* )?(?:\\[[A-Za-z+]+] )?[\\w]+: .+")
 
     // Lignes de boss / invocations (masquées via le toggle SkyBlock "Hide boss messages").
     private val BOSS_LINE = Pattern.compile("^\\[(?:BOSS|STATUE)] |^ *[A-Z][A-Z ]+ DOWN!| has spawned!$")
@@ -135,21 +144,45 @@ object ChatRules {
             beautify = { _, raw -> raw.replaceFirst(Regex("\\[NPC]\\s*"), "") }),
         Rule("boss", Category.SKYBLOCK, RuleAction.HIDE, BOSS_LINE,
             beautify = { _, raw -> raw.replaceFirst(Regex("\\[(?:BOSS|STATUE)]\\s*"), "") }),
-        Rule("radiating-generosity", Category.LOBBY, RuleAction.GREY,
-            Pattern.compile("^You are still radiating with ")),
-        Rule("playtime-ticket", Category.LOBBY, RuleAction.GREY,
-            Pattern.compile("^PLAYTIME! You gained ")),
-        Rule("reward-link", Category.LOBBY, RuleAction.GREY,
-            Pattern.compile("Click the link to visit our website and claim your reward")),
-        Rule("morph-wardrobe", Category.LOBBY, RuleAction.GREY,
-            Pattern.compile("^(You are now morphed|You selected .+ Cloak|Reset your (Cloak|Morph)|Right-Click with the .* to activate)")),
-        Rule("raffle-win", Category.LOBBY, RuleAction.COMPACT,
-            Pattern.compile("^RAFFLE! .+ won .+ in Speed Raffle #\\d+!"),
+        Rule("radiating-generosity", Category.LOBBY, RuleAction.COMPACT,
+            Pattern.compile("^You are still radiating with "),
+            beautify = { _, _ -> "§eRadiating generosity" }),
+        Rule("playtime-ticket", Category.LOBBY, RuleAction.COMPACT,
+            Pattern.compile("^PLAYTIME! You gained "),
             beautify = { c, _ ->
-                val who = Regex("RAFFLE! (.+?) won").find(c)?.groupValues?.get(1) ?: "?"
-                val prize = Regex("won (.+?) in Speed Raffle").find(c)?.groupValues?.get(1) ?: ""
-                val num = Regex("Speed Raffle #(\\d+)").find(c)?.groupValues?.get(1) ?: ""
-                "§6§lRAFFLE §r§f$who §7· §f$prize §7· §8#$num"
+                val item = c.substringAfter("You gained ").removeSuffix("!")
+                    .removePrefix("a ").removePrefix("Playtime ").trim()
+                "§ePlaytime §7· §a+$item"
+            }),
+        Rule("reward-link", Category.LOBBY, RuleAction.COMPACT,
+            Pattern.compile("Click the link to visit our website and claim your reward"),
+            beautify = { c, _ ->
+                val link = c.substringAfter("reward: ", "").trim()
+                if (link.isEmpty()) "§6Claim reward" else "§6Claim reward: §b$link"
+            }),
+        Rule("morph-wardrobe", Category.LOBBY, RuleAction.COMPACT,
+            Pattern.compile("^(You are now morphed|You selected .+ Cloak|Reset your (Cloak|Morph)|Morph reset\\.|Right-Click with the .* to activate)"),
+            beautify = { c, _ ->
+                when {
+                    c.startsWith("You are now morphed") -> {
+                        // "morphed into a Cow!" ou "morphed as a Cow Morph for 5 minutes."
+                        val m = Regex("morphed (?:into|as) (?:an? )?(.+?)(?: Morph)?(?: for .+)?[!.]*$")
+                            .find(c)?.groupValues?.get(1) ?: c
+                        "§7Morphed §8→ §f$m"
+                    }
+                    c.startsWith("You selected") -> {
+                        val name = c.substringAfter("You selected ").removeSuffix("!")
+                            .removePrefix("the ").removeSuffix(" Cloak").trim()
+                        "§7Cloak §8→ §f$name"
+                    }
+                    c.startsWith("Morph reset") -> "§7Reset morph"
+                    c.startsWith("Reset your") ->
+                        "§7Reset " + c.substringAfter("Reset your ").removeSuffix("!").trim().lowercase()
+                    else -> {
+                        val item = Regex("Right-Click with the (.+?)(?: selected)? to activate").find(c)?.groupValues?.get(1)
+                        if (item != null) "§7Right-click §f$item §7to activate" else "§7$c"
+                    }
+                }
             }),
         Rule("sacks", Category.SKYBLOCK, RuleAction.GREY,
             Pattern.compile("^\\[Sacks] \\+"),
@@ -169,8 +202,19 @@ object ChatRules {
                 val srv = Regex("Sending to server (.+?)\\.\\.\\.").find(c)?.groupValues?.get(1)
                 if (srv != null) "§8→ §7$srv" else "§7Warping..."
             }),
-        Rule("pet-spawn", Category.LOBBY, RuleAction.OFF,
-            Pattern.compile("^(Spawned|Despawned) your .+")),
+        Rule("pet-spawn", Category.LOBBY, RuleAction.COMPACT,
+            Pattern.compile("^(Spawned|Despawned) your .+"),
+            beautify = { c, _ ->
+                val name = c.substringAfter("your ").removeSuffix("!").trim()
+                if (c.startsWith("Spawned")) "§a+ §f$name" else "§c- §f$name"
+            }),
+        // Pets SkyBlock : même logique +/- que le lobby, mais la couleur de rareté du raw est gardée.
+        Rule("pet-summon", Category.SKYBLOCK, RuleAction.COMPACT,
+            Pattern.compile("^You (summoned|despawned) your .+"),
+            beautify = { c, raw ->
+                val name = raw.substringAfter("your ").trim().replace(Regex("(?:§.)*!(?:§.)*\\s*$"), "")
+                if (c.startsWith("You summoned")) "§a+ §r$name" else "§c- §r$name"
+            }),
         Rule("damage-spam", Category.SKYBLOCK, RuleAction.GREY,
             Pattern.compile("^Your (.+?) hit \\d+ enem(y|ies) for [0-9,.]+ damage\\."),
             beautify = { c, _ ->

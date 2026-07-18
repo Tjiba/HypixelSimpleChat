@@ -56,13 +56,19 @@ object ChannelFormat {
 
     private fun formatPublic(raw: String, cfg: RuleConfig): List<Seg>? {
         val clean = ChatRules.clean(raw)
-        // Niveau [330] puis emblème ⛃ optionnels (avant le rank), sur texte nettoyé.
+        // Niveau [330] puis emblème optionnels (avant le rank), sur texte nettoyé.
         var rest = clean
         var level: String? = null
         val lm = LEVEL_HEAD.matcher(rest)
         if (lm.find()) { level = lm.group(1); rest = rest.substring(lm.end()) }
-        val hasEmblem = rest.startsWith("⛃ ")
-        if (hasEmblem) rest = rest.substring(2)
+        // Emblème générique : un glyphe symbole en tête (pas '[', pas alphanum), suivi d'un espace.
+        // Hypixel en a beaucoup (⛃ ☠ ⚑ ➷ …), pas seulement le pioche/coffre.
+        var emblem: String? = null
+        val first = rest.firstOrNull()
+        if (first != null && first != '[' && !first.isLetterOrDigit() && first != '_') {
+            val sp = rest.indexOf(' ')
+            if (sp > 0) { emblem = rest.substring(0, sp); rest = rest.substring(sp + 1) }
+        }
 
         val sep = rest.indexOf(": ")
         if (sep < 0) return null
@@ -75,7 +81,7 @@ object ChannelFormat {
         if (level != null && !cfg.prefix.hideLevel) {
             out.add(Seg("[", BRACKET)); out.add(Seg(level, lvlColor)); out.add(Seg("]", BRACKET)); out.add(Seg(" ", null))
         }
-        if (hasEmblem && !cfg.prefix.hideEmblem) { out.addAll(rawColored(raw, "⛃")); out.add(Seg(" ", null)) }
+        if (emblem != null && !cfg.prefix.hideEmblem) { out.addAll(rawColored(raw, emblem)); out.add(Seg(" ", null)) }
         out.addAll(rankNameSegs(raw, nameHead, cfg.publicStyle))
         out.add(Seg(": ", DIM))
         out.addAll(messageSegs(rawMessageSlice(raw, rest.substring(0, sep + 2), msg), cfg.publicStyle))
