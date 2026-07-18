@@ -46,7 +46,7 @@ object HideUseless {
             "HYPIXEL is hosting a .+ tournament!",
         ),
         HideGroup.DUNGEONS to p(
-            "(?:A .+ Key was picked up!\\?|RIGHT CLICK on .+ to open it\\. This key can only be used to open 1 door!|.+ opened a .+ door!|You hear the sound of something opening\\.\\.\\.|You do not have the key for this door!)",
+            "(?:A .+ Key was picked up!?|RIGHT CLICK on .+ to open it\\. This key can only be used to open 1 door!|.+ opened a .+ door!|You hear the sound of something opening\\.\\.\\.|You do not have the key for this door!)",
             "(?:This lever has already been used\\.|Someone has already activated this lever!)",
             "(?:This chest has already been searched!|You have already opened this dungeon chest!|That chest is locked!)",
             "^(?:A mystical force .+|You cannot (?:use abilities|do that) in this room!)$",
