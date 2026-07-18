@@ -20,7 +20,9 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - name: Build & test (MC ${{ matrix.mc }})
         run: ./gradlew build -Pmc=${{ matrix.mc }}
+      # Un seul jar universel publié (build 26.2) ; le job 26.1 ne sert que de vérif de compilation.
       - uses: actions/upload-artifact@v4
+        if: matrix.mc == '26.2'
         with:
-          name: HypixelSimpleChat-mc${{ matrix.mc }}
+          name: HypixelSimpleChat
           path: build/libs/*.jar
