@@ -1,6 +1,7 @@
 package com.simplechat
 
 import com.google.gson.JsonParser
+import com.simplechat.config.Settings
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents
 import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.client.Minecraft

@@ -1,5 +1,8 @@
 package com.simplechat
 
+import com.simplechat.config.Settings
+import com.simplechat.ui.ConfigScreens
+import com.simplechat.ui.Screens
 import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback
 import net.fabricmc.fabric.api.client.command.v2.ClientCommands
@@ -20,13 +23,23 @@ object SimpleChatMod : ClientModInitializer {
         Updater.init()
 
         ClientCommandRegistrationCallback.EVENT.register { dispatcher, _ ->
-            dispatcher.register(
+            val root = dispatcher.register(
                 ClientCommands.literal("hsc")
                     .then(ClientCommands.literal("update").executes {
                         Updater.checkManually(it.source.client); 1
                     })
                     .executes { pendingConfig = true; 1 }
             )
+            // Brigadier distingue la casse : /HSC n'est pas /hsc. Tout-minuscule et tout-majuscule
+            // couvrent les frappes réelles sans noyer la complétion. Un alias refusé ne doit pas
+            // emporter /hsc avec lui.
+            runCatching {
+                for (alias in listOf("HSC", "gz", "GZ", "hypixelsimplechat")) {
+                    dispatcher.register(
+                        ClientCommands.literal(alias).executes { pendingConfig = true; 1 }.redirect(root)
+                    )
+                }
+            }.onFailure { LOGGER.warn("Command aliases unavailable: {}", it.message) }
         }
 
         ClientTickEvents.END_CLIENT_TICK.register { client ->

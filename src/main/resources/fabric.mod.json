@@ -3,14 +3,14 @@
   "id": "simplechat",
   "version": "${version}",
   "name": "Hypixel Simple Chat",
-  "description": "Reformats Hypixel chat (lobbies + SkyBlock) into a clean, readable version — nothing lost. Commands: /hsc, /hsc update",
+  "description": "Reformats Hypixel chat (lobbies + SkyBlock) into a clean, readable version — nothing lost. Commands: /hsc (or /gz, /hypixelsimplechat), /hsc update",
   "authors": ["Tjiba"],
   "license": "LGPL-3.0-or-later",
   "icon": "assets/simplechat/icon.png",
   "environment": "client",
   "entrypoints": {
     "client": [ { "adapter": "kotlin", "value": "com.simplechat.SimpleChatMod" } ],
-    "modmenu": [ { "adapter": "kotlin", "value": "com.simplechat.HscModMenu" } ]
+    "modmenu": [ { "adapter": "kotlin", "value": "com.simplechat.ui.HscModMenu" } ]
   },
   "mixins": [
     "simplechat.mixins.json"

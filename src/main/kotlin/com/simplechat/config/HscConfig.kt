@@ -23,6 +23,13 @@ class ConfigEntry(
     val enumConstants: List<Enum<*>> = emptyList(),
 ) {
     var value: Any = default
+        set(v) { field = v; revision++ }
+
+    companion object {
+        /** Incrémenté à chaque écriture : permet d'invalider les instantanés en cache. */
+        @Volatile var revision = 0
+            private set
+    }
 
     fun getBoolean() = value as Boolean
     fun setBoolean(v: Boolean) { value = v }
@@ -61,6 +68,12 @@ open class ConfigGroup {
     protected fun color(default: Int, block: EntryMeta.() -> Unit = {}) = register(EntryKind.COLOR, default, emptyList(), block)
     protected fun <T : Enum<T>> enum(default: T, block: EntryMeta.() -> Unit = {}) =
         register(EntryKind.ENUM, default, default.declaringJavaClass.enumConstants.toList(), block)
+
+    /** Entrée sans propriété Kotlin, déclarée à l'exécution (réglages générés depuis le registre). */
+    fun <T : Enum<T>> addEnum(id: String, default: T, title: String, description: String = "") {
+        entries[id] = ConfigEntry(id, EntryKind.ENUM, title, description, default,
+            default.declaringJavaClass.enumConstants.toList())
+    }
 }
 
 open class HscCategory(val id: String) : ConfigGroup()
@@ -82,6 +95,9 @@ abstract class HscConfig(path: String) : ConfigGroup() {
     /** Appelé quand aucun fichier config n'existe (tout premier lancement). */
     protected open fun firstLaunch() {}
 
+    /** Appelé après lecture, avec la racine JSON telle qu'elle était : reprise d'anciennes clés. */
+    protected open fun migrate(root: JsonObject) {}
+
     fun load() {
         val source = file.takeIf { Files.exists(it) } ?: legacyFile.takeIf { Files.exists(it) }
         if (source == null) { firstLaunch(); save(); return }
@@ -93,6 +109,7 @@ abstract class HscConfig(path: String) : ConfigGroup() {
                 val obj = root.get(id) as? JsonObject ?: continue
                 readGroup(cat, obj)
             }
+            migrate(root)
         }.onFailure { logger.warn("Invalid config file {}, keeping defaults: {}", source.fileName, it.message) }
         save() // normalise (migration jsonc → json, nouvelles options)
     }
@@ -112,6 +129,8 @@ abstract class HscConfig(path: String) : ConfigGroup() {
                 val obj = root.get(id) as? JsonObject ?: continue
                 readGroup(cat, obj)
             }
+            // Un preset peut ne parler que des groupes : ses valeurs descendent sur les phrases.
+            migrate(root)
         }.onFailure { logger.warn("Invalid preset: {}", it.message) }
     }
 

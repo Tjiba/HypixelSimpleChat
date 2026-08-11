@@ -1,5 +1,6 @@
 package com.simplechat
 
+import com.simplechat.engine.Verdict
 import java.util.regex.Pattern
 
 /**

@@ -2,7 +2,7 @@ package com.simplechat.mixin;
 
 import com.simplechat.HscChatAccess;
 import com.simplechat.IHscChat;
-import com.simplechat.Settings;
+import com.simplechat.config.Settings;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;

@@ -1,12 +1,12 @@
 package com.simplechat.mixin;
 
-import com.simplechat.ChatRules;
 import com.simplechat.HscChatAccess;
 import com.simplechat.IHscChat;
-import com.simplechat.LegacyText;
-import com.simplechat.RuleConfig;
-import com.simplechat.Seg;
-import com.simplechat.Verdict;
+import com.simplechat.config.RuleConfig;
+import com.simplechat.engine.ChatRules;
+import com.simplechat.engine.LegacyText;
+import com.simplechat.engine.Seg;
+import com.simplechat.engine.Verdict;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.ChatComponent;
 import net.minecraft.client.multiplayer.chat.GuiMessage;
@@ -98,10 +98,10 @@ public abstract class ChatHudMixin implements IHscChat {
         java.util.function.Predicate<GuiMessage> pred = m -> {
             String content = m.content().getString();
             if (tab != 0) {
-                com.simplechat.Channel ch = ChatRules.INSTANCE.classify(hsc$stripLead(content));
+                com.simplechat.engine.Channel ch = ChatRules.INSTANCE.classify(hsc$stripLead(content));
                 boolean ok = switch (tab) {
-                    case 1 -> ch == com.simplechat.Channel.PARTY;
-                    case 2 -> ch == com.simplechat.Channel.GUILD || ch == com.simplechat.Channel.OFFICER;
+                    case 1 -> ch == com.simplechat.engine.Channel.PARTY;
+                    case 2 -> ch == com.simplechat.engine.Channel.GUILD || ch == com.simplechat.engine.Channel.OFFICER;
                     default -> true;
                 };
                 if (!ok) return false;
@@ -153,7 +153,7 @@ public abstract class ChatHudMixin implements IHscChat {
     // require=0 : si un patch MC déplace la constante, on retombe sur les 100 vanilla au lieu de crasher.
     @ModifyConstant(method = {"addMessageToQueue", "addMessageToDisplayQueue"}, constant = @Constant(intValue = 100), require = 0)
     private int hsc$maxHistory(int original) {
-        return Math.max(100, Math.min(2048, com.simplechat.Settings.INSTANCE.getMaxMessages()));
+        return Math.max(100, Math.min(2048, com.simplechat.config.Settings.INSTANCE.getMaxMessages()));
     }
 
     @Inject(
@@ -180,7 +180,7 @@ public abstract class ChatHudMixin implements IHscChat {
 
         // #2 : préserver les items/entités linkés -> ne pas reformater un message joueur qui en contient.
         if (v instanceof Verdict.Segments && hsc$hasItemLink(original)) {
-            v = com.simplechat.Verdict.Pass.INSTANCE;
+            v = com.simplechat.engine.Verdict.Pass.INSTANCE;
         }
 
         // Bouton cliquable (accepter un appel Abiphone, rejoindre une party…) : ne pas masquer/
@@ -189,7 +189,13 @@ public abstract class ChatHudMixin implements IHscChat {
         // pseudos, le garde-fou bloquerait sinon tout le reformat de canal.
         if ((v instanceof Verdict.Hide || v instanceof Verdict.Replace || v instanceof Verdict.Compact)
                 && hsc$hasActionClick(original)) {
-            v = com.simplechat.Verdict.Pass.INSTANCE;
+            v = com.simplechat.engine.Verdict.Pass.INSTANCE;
+        }
+
+        // Lien web (changelog, page de récompense) : le reformat reconstruit le texte et perdrait
+        // l'URL. Masquer reste permis — c'est un choix explicite du joueur, pas une perte muette.
+        if ((v instanceof Verdict.Replace || v instanceof Verdict.Compact) && hsc$hasUrlClick(original)) {
+            v = com.simplechat.engine.Verdict.Pass.INSTANCE;
         }
 
         // #3 : collapse intelligent (normalise les nombres) pour les messages système reformatés.
@@ -259,8 +265,18 @@ public abstract class ChatHudMixin implements IHscChat {
                 .append(Component.literal(" (x" + count + ")").withStyle(s -> s.withColor(0x555555)));
     }
 
+    /** true si un style porte un lien web (OpenUrl). Reformater le message le détruirait. */
+    private static boolean hsc$hasUrlClick(Component c) {
+        return c.visit((style, text) -> {
+            if (style.getClickEvent() instanceof net.minecraft.network.chat.ClickEvent.OpenUrl) {
+                return java.util.Optional.of(Boolean.TRUE);
+            }
+            return java.util.Optional.empty();
+        }, net.minecraft.network.chat.Style.EMPTY).isPresent();
+    }
+
     /** true si un style porte un clic-commande (bouton d'action : run/suggest command).
-     *  Les OpenUrl ne comptent pas — les liens web restent compactables. */
+     *  Les OpenUrl sont traités à part : ils interdisent le reformat, pas le masquage. */
     private static boolean hsc$hasActionClick(Component c) {
         return c.visit((style, text) -> {
             net.minecraft.network.chat.ClickEvent e = style.getClickEvent();
@@ -338,6 +354,6 @@ public abstract class ChatHudMixin implements IHscChat {
     }
 
     private static Component buildSegs(List<Seg> segs) {
-        return com.simplechat.SegRender.toComponent(segs);
+        return com.simplechat.engine.SegRender.toComponent(segs);
     }
 }

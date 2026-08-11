@@ -1,5 +1,7 @@
 package com.simplechat
 
+import com.simplechat.config.RuleConfig
+import com.simplechat.engine.Verdict
 import java.util.regex.Pattern
 
 /**
