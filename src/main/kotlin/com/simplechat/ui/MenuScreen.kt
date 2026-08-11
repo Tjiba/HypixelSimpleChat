@@ -80,7 +80,8 @@ class MenuScreen(private val parent: Screen?) : Screen(
     private fun previewX1() = settingsX2() + MenuTheme.GAP
     private fun widgetW() = minOf(MenuTheme.WIDGET_W, (settingsX2() - mainX1()) / 2)
     private val topTabH = 18
-    private fun hasTopTabs() = searchQuery.isEmpty() && VIEWS.containsKey(currentCategory)
+    // Un seul onglet (Lobby, System) : pas de barre d'onglets à dessiner.
+    private fun hasTopTabs() = searchQuery.isEmpty() && (VIEWS[currentCategory]?.size ?: 0) > 1
     private fun searchRect(): IntArray {
         val wr = winX() + winW()
         return intArrayOf(wr - 150, winY() + 5, wr - 26, winY() + 19)
@@ -229,8 +230,14 @@ class MenuScreen(private val parent: Screen?) : Screen(
         if (extra.isNotEmpty() && topTab == views.keys.first()) { items.add(Header("MISC")); items.addAll(extra) }
     }
 
-    /** Liste + aperçu : les deux vont toujours ensemble, l'aperçu est déduit de la liste. */
-    private fun refresh() { buildItems(); rebuildPreview() }
+    /** Liste + aperçu : les deux vont toujours ensemble, l'aperçu est déduit de la liste.
+     *  Le scroll est borné ici : replier un groupe raccourcit la liste, et l'aperçu se calcule
+     *  à partir du premier réglage visible — un scroll périmé le viderait. */
+    private fun refresh() {
+        buildItems()
+        scroll = scroll.coerceIn(0, maxScroll())
+        rebuildPreview()
+    }
 
     private fun rebuildPreview() {
         // L'aperçu suit la liste affichée : il démarre au premier réglage encore visible.
@@ -535,18 +542,24 @@ class MenuScreen(private val parent: Screen?) : Screen(
         }
 
         if (inRect(mx, my, mainX1(), listTop(), settingsX2(), regionBottom())) {
-            var handled = false
+            // On repère la ligne cliquée AVANT d'agir : déplier un groupe reconstruit `items`,
+            // et le faire pendant qu'on l'itère lèverait une ConcurrentModificationException.
+            var hit: Item? = null
+            var hitTop = 0
             eachItem { item, itop, _ ->
-                if (handled || my < itop || my > itop + MenuTheme.ROW_H) return@eachItem
-                if (item is Setting && handleRowClick(item, itop, mx, my)) handled = true
-                if (item is PresetRow) {
-                    val y = presetBtnY(itop)
-                    for ((label, x1, x2) in presetButtons(itop)) {
+                if (hit == null && my >= itop && my <= itop + MenuTheme.ROW_H) { hit = item; hitTop = itop }
+            }
+            when (val item = hit) {
+                is Setting -> handleRowClick(item, hitTop, mx, my)
+                is PresetRow -> {
+                    val y = presetBtnY(hitTop)
+                    for ((label, x1, x2) in presetButtons(hitTop)) {
                         if (inRect(mx, my, x1, y, x2, y + MenuTheme.WIDGET_H)) {
-                            applyPreset(label == "Recommended"); handled = true; break
+                            applyPreset(label == "Recommended"); break
                         }
                     }
                 }
+                else -> {}
             }
             return true
         }

@@ -61,6 +61,22 @@ class MenuLayoutTest {
         assertEquals(expected, ids.size)
     }
 
+    // Lobby et System passaient en liste plate : leurs phrases s'affichaient sans barre de
+    // groupe ni repliage, exactement le mur de réglages que le repliage doit éviter.
+    @Test fun `every rule category has a view`() {
+        for (category in listOf("Lobby", "System")) {
+            val view = MenuLayout.views[category]
+            assertTrue(view != null, "catégorie sans vue : $category")
+            assertEquals(1, view!!.size, "$category ne doit avoir qu'un onglet")
+            val ids = view.values.first().values.flatten()
+            for (groupId in MenuLayout.bulk.keys) {
+                val phrases = MenuLayout.bulk.getValue(groupId)
+                if (phrases.none { it in ids }) continue
+                assertTrue(groupId in ids, "$groupId affiche ses phrases sans sa barre de groupe")
+            }
+        }
+    }
+
     @Test fun `no empty section`() {
         for ((tab, sections) in skyblock) {
             for ((title, ids) in sections) {

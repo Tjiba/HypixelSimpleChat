@@ -14,11 +14,14 @@ object MenuLayout {
     /** Ordre d'affichage des sections de l'onglet General ; une section inconnue passe en fin. */
     private val SECTION_ORDER = listOf("GENERAL", "WORLD & EVENTS", "COMBAT", "ECONOMY")
 
-    /** Réglages qui ne viennent pas d'une règle : placés à la main, en tête de leur section. */
+    /** Réglages qui ne viennent pas d'une règle : placés à la main, en tête de leur bloc.
+     *  Clé = nom de section, d'île, ou de catégorie sans section (Lobby / System). */
     private val EXTRAS = mapOf(
         "GENERAL" to listOf("enabled", "customPatterns"),
         "WORLD & EVENTS" to listOf("hoppity"),
         "Dungeons" to listOf("soloClass"),
+        "Lobby" to listOf("enabled"),
+        "System" to listOf("enabled"),
     )
 
     val views: Map<String?, LinkedHashMap<String, LinkedHashMap<String, List<String>>>> = build()
@@ -61,7 +64,21 @@ object MenuLayout {
             tabs[island] = linkedMapOf("" to EXTRAS[island].orEmpty() + groups.flatMap { withPhrases(it) })
         }
 
-        return mapOf("SkyBlock" to tabs)
+        val views = linkedMapOf<String?, LinkedHashMap<String, LinkedHashMap<String, List<String>>>>(
+            "SkyBlock" to tabs,
+        )
+
+        // Lobby et System n'ont pas de sections : un seul onglet, sans en-tête. Ils passent
+        // quand même par ici pour avoir les barres de groupe et le repliage.
+        for (category in listOf(Category.LOBBY, Category.SYSTEM)) {
+            val groups = Registry.groups.filter { it.category == category }
+            if (groups.isEmpty()) continue
+            val id = RuleSettings.configId(category)
+            val ids = EXTRAS[id].orEmpty() + groups.flatMap { withPhrases(it) }
+            views[id] = linkedMapOf("General" to linkedMapOf("" to ids))
+        }
+
+        return views
     }
 
     /** Le réglage du groupe, puis un réglage par phrase qu'il couvre. */
