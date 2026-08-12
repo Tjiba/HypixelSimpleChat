@@ -21,8 +21,7 @@ object Npc {
                 sample = "§e[NPC] Simon§f: We hope you enjoy the festivities this year!")
         } +
         rules(ABIPHONE) {
-            // La ligne du NPC avec le bouton cliquable n'est jamais touchée
-            // (garde-fou ClickEvent dans ChatHudMixin).
+            // Le bouton [PICK UP] est réattaché au compact par le mixin.
             rule("abiphone-ring", RuleAction.HIDE,
                 "^✆ RING",
                 compact = { "§a✆ §7Ring…" },

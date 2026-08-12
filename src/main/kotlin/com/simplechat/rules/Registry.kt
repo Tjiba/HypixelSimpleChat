@@ -16,6 +16,7 @@ import com.simplechat.rules.common.Pets
 import com.simplechat.rules.common.Slayer
 import com.simplechat.rules.common.Warnings
 import com.simplechat.rules.islands.Dungeons
+import com.simplechat.rules.islands.Foraging
 import com.simplechat.rules.lobby.Boosters
 import com.simplechat.rules.lobby.Joins
 import com.simplechat.rules.lobby.Morphs
@@ -42,14 +43,23 @@ object Registry {
         Economy.SACKS, Economy.LOOT_SHARE, Economy.GEXP, Economy.RARE_REWARD,
         Server.PROFILE_ID, Server.ROUTING,
         Transitions.TRANSITIONS, Notifications.NOTIFICATIONS, Dungeons.DUNGEONS,
-        Abilities.ABILITIES, Combat.COMBAT_HEAL, Drops.REWARDS,
+        Foraging.TREE_GIFT, Foraging.FLOOR_DROP, Foraging.PETALFALL, Foraging.WOODPECKER,
+        Foraging.TORRHUS, Foraging.HIVE,
+        Foraging.APPEARED, Foraging.SHARDS, Foraging.HUNTING, Foraging.HONEY_TREE,
+        Foraging.SAFARI_ENTRY, Foraging.SAFARI_MANAGER, Foraging.SAFARI_SUMMARY,
+        Foraging.SAFARI_MILESTONES, Foraging.SAFARI_DISABLED,
+        Abilities.ABILITIES, Combat.COMBAT_HEAL, Drops.SKYBLOCK_XP, Drops.REWARDS,
         Misc.MISC, Bazaar.BAZAAR, Slayer.SLAYER, Events.EVENTS, Warnings.WARNINGS,
     )
 
     val rules: List<Rule> =
         // Règles précises : un réglage chacune, elles décident avant les groupes.
-        Joins.rules + Boosters.rules + Rewards.rules + Morphs.rules +
-            Npc.rules + Pets.rules + Combat.rules + Economy.rules + Server.rules +
+        // Garde-fou : aucune règle ne doit avaler un gain d'XP SkyBlock.
+        Drops.skyblockXp +
+            Joins.rules + Boosters.rules + Rewards.rules + Morphs.rules +
+            Npc.rules + Pets.rules +
+            // Avant Combat : son générique "… DOWN!" avalerait le "BEEHEEMOTH DOWN!" de Torrhus.
+            Foraging.rules + Combat.rules + Economy.rules + Server.rules +
             // Groupes de spam : un réglage pour plusieurs messages.
             Transitions.rules + Notifications.rules + Dungeons.rules +
             Abilities.rules + Combat.spam + Drops.rules +
@@ -71,12 +81,19 @@ object Registry {
     fun match(clean: String, raw: String, cfg: RuleConfig): Verdict? {
         val (rule, m) = find(clean, raw) ?: return null
         if (!enabled(rule.group.category, cfg)) return Verdict.Pass
+        val short = rule.compact?.invoke(m)
+        // Compact vide = rien à montrer : la phrase disparaît même si son groupe est en COMPACT.
+        // C'est ce qui permet à un réglage unique de cacher une ligne et d'en raccourcir d'autres.
         return when (actionOf(rule, cfg)) {
             RuleAction.OFF -> Verdict.Pass
             RuleAction.HIDE -> Verdict.Hide
             RuleAction.GREY -> Verdict.Replace("§8" + clean)
-            RuleAction.COMPACT -> Verdict.Replace(rule.compact?.let { ChatRules.theme(it(m), cfg) } ?: raw)
-            RuleAction.COMPACT_GREY -> Verdict.Replace("§8" + ChatRules.clean(rule.compact?.invoke(m) ?: raw))
+            RuleAction.COMPACT ->
+                if (short?.isEmpty() == true) Verdict.Hide
+                else Verdict.Replace(short?.let { ChatRules.theme(it, cfg) } ?: raw)
+            RuleAction.COMPACT_GREY ->
+                if (short?.isEmpty() == true) Verdict.Hide
+                else Verdict.Replace("§8" + ChatRules.clean(short ?: raw))
         }
     }
 

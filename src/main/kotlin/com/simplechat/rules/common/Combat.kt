@@ -80,7 +80,7 @@ object Combat {
                 title = "Strength granted")
             rule("combat-tether", RuleAction.HIDE,
                 "^(.+) formed a tether with you!$",
-                compact = { "§a⚯ §f${it[1]}" },
+                compact = { "§a⚯ ${Fmt.rawSpan(it.raw, it[1])}" },
                 sample = "§aTimo formed a tether with you!",
                 title = "Tether formed")
             rule("combat-orb-taken", RuleAction.HIDE,

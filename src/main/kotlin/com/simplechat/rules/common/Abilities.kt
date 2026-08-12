@@ -2,6 +2,7 @@ package com.simplechat.rules.common
 
 import com.simplechat.engine.RuleAction
 import com.simplechat.rules.Category
+import com.simplechat.rules.Fmt
 import com.simplechat.rules.Group
 import com.simplechat.rules.rules
 
@@ -29,7 +30,7 @@ object Abilities {
             title = "Not enough mana")
         rule("ability-ready", RuleAction.HIDE,
             "^(.+) is (?:ready to use! Press DROP to activate it!|now (?:available|ready)!)",
-            compact = { "§a✔ §f${it[1]} §7ready" },
+            compact = { "§a✔ ${Fmt.rawSpan(it.raw, it[1])} §7ready" },
             sample = "§aYour Grappling Hook is ready to use! Press DROP to activate it!",
             title = "Ability ready")
         rule("item-used", RuleAction.HIDE,
@@ -43,7 +44,7 @@ object Abilities {
             title = "Solo class stats doubled")
         rule("class-milestone", RuleAction.HIDE,
             "^(Archer|Mage|Berserker|Tank|Healer) Milestone (\\S+)",
-            compact = { "§6Milestone §7· §f${it[1]} ${it[2]}" },
+            compact = { "§6Milestone §7· ${Fmt.rawSpan(it.raw, it[1])} ${it[2]}" },
             sample = "§6Archer Milestone V: You have gained +5% damage!",
             title = "Class milestone")
         rule("creeper-veil", RuleAction.HIDE,

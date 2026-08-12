@@ -22,6 +22,21 @@ internal object MenuTheme {
     const val TEXT_FAINT = 0xFF8A8A96.toInt()
     const val TEXT_TITLE = 0xFFFFFFFF.toInt()
 
+    // Les 16 codes couleur de Minecraft n'ont ni vert forêt ni terre cuite : teintes en dur.
+    private const val FORAGING = 0xFF2E7D32.toInt()   // vert foncé
+    private val TAB_ACCENT = mapOf("Foraging" to FORAGING)
+    private val SECTION_TINT = mapOf(
+        "Foraging/GENERAL" to FORAGING,
+        "Foraging/GALATEA" to 0xFF4C9A57.toInt(),   // vert forêt
+        "Foraging/TORRHUS" to 0xFFC1663F.toInt(),   // canyon
+    )
+
+    /** Couleur de l'onglet actif : blurple par défaut, teinte propre pour certains contenus. */
+    fun tabAccent(tab: String?): Int = TAB_ACCENT[tab] ?: ACCENT
+
+    /** Couleur d'un en-tête de section : gris par défaut, teinte propre pour certaines zones. */
+    fun sectionTint(tab: String?, title: String): Int = SECTION_TINT["$tab/$title"] ?: TEXT_FAINT
+
     const val PAD = 12
     const val GAP = 8
     const val TITLE_H = 24

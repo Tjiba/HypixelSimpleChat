@@ -71,6 +71,14 @@ class RegistryTest {
         assertEquals(Verdict.Hide, ChatRules.evaluate("§8A §5Wither Key §8was picked up!", cfg))
     }
 
+    // "BEEHEEMOTH DOWN!" tombe dans le générique "… DOWN!" du réglage Boss : seule sa place
+    // avant Combat dans le registre le laisse passer intact.
+    @Test fun `beeheemoth down échappe au réglage Boss`() {
+        val cfg = RuleConfig.DEFAULT.copy(groupActions = mapOf("boss" to RuleAction.HIDE))
+        assertEquals(Verdict.Pass, ChatRules.evaluate("§6§lBEEHEEMOTH DOWN!", cfg))
+        assertEquals(Verdict.Hide, ChatRules.evaluate("§cARACHNE DOWN!", cfg))
+    }
+
     @Test fun `registre vide, pas de verdict, l'ancien moteur enchaîne`() {
         assertNull(Registry.match("zzz qqq 12345", "zzz qqq 12345", RuleConfig.DEFAULT))
     }

@@ -173,7 +173,8 @@ public abstract class ChatHudMixin implements IHscChat {
         legacy = stripped;
         String clean = ChatRules.INSTANCE.clean(legacy);
         if (warned && clean.isEmpty()) { ci.cancel(); return; }
-        Verdict v = com.simplechat.HoppityCompact.INSTANCE.process(clean, cfg.getCompactHoppity());
+        Verdict v = com.simplechat.SafariSummary.INSTANCE.process(clean, cfg);
+        if (v == null) v = com.simplechat.HoppityCompact.INSTANCE.process(clean, cfg.getCompactHoppity());
         if (v == null) v = ChatRules.INSTANCE.evaluate(legacy, cfg);
 
         if (v instanceof Verdict.Hide) { ci.cancel(); return; }
@@ -187,16 +188,19 @@ public abstract class ChatHudMixin implements IHscChat {
         // reformater un message SYSTEM — le Replace reconstruit le texte et perdrait le ClickEvent.
         // Les messages joueurs (Segments) restent formatés : Hypixel met un clic /msg sur tous les
         // pseudos, le garde-fou bloquerait sinon tout le reformat de canal.
-        if ((v instanceof Verdict.Hide || v instanceof Verdict.Replace || v instanceof Verdict.Compact)
-                && hsc$hasActionClick(original)) {
+        if (v instanceof Verdict.Hide && hsc$hasActionClick(original)) {
+            com.simplechat.Debug.logGuard("clickable button", legacy);
             v = com.simplechat.engine.Verdict.Pass.INSTANCE;
         }
 
         // Lien web (changelog, page de récompense) : le reformat reconstruit le texte et perdrait
         // l'URL. Masquer reste permis — c'est un choix explicite du joueur, pas une perte muette.
         if ((v instanceof Verdict.Replace || v instanceof Verdict.Compact) && hsc$hasUrlClick(original)) {
+            com.simplechat.Debug.logGuard("web link", legacy);
             v = com.simplechat.engine.Verdict.Pass.INSTANCE;
         }
+
+        com.simplechat.Debug.log(legacy, clean, v);
 
         // #3 : collapse intelligent (normalise les nombres) pour les messages système reformatés.
         boolean smart = cfg.getSmartCollapse() && (v instanceof Verdict.Replace);
@@ -212,6 +216,12 @@ public abstract class ChatHudMixin implements IHscChat {
             base = build(rv.getLegacy());
         } else {
             base = warned ? build(legacy) : original; // Pass (rebuild si l'avertissement a été retiré)
+        }
+        // Un message reformaté garde ses boutons et son survol : le texte est reconstruit, les
+        // ClickEvent et HoverEvent non. Le détail (XP gagnée, contenu d'un gift) reste à portée.
+        if (v instanceof Verdict.Replace || v instanceof Verdict.Compact) {
+            if (hsc$hasActionClick(original)) base = hsc$withClickables(base, original);
+            base = hsc$withHover(base, original);
         }
         boolean untouched = v instanceof Verdict.Pass && !warned;
         hsc$display(base, key, untouched, cfg, signature, source, tag, ci);
@@ -235,6 +245,7 @@ public abstract class ChatHudMixin implements IHscChat {
             try { all.remove(0); hsc$refreshTrimmed(); edited = true; } catch (Throwable ignored) {}
             if (edited) {
                 HSC_LAST_COUNT++;
+                com.simplechat.Debug.logCollapsed(key, HSC_LAST_COUNT);
                 Component disp = withTimestamp(hsc$withCount(base, HSC_LAST_COUNT), cfg);
                 HSC_LAST_TIME = now;
                 HSC_LAST_RENDERED = disp.getString();
@@ -257,6 +268,7 @@ public abstract class ChatHudMixin implements IHscChat {
 
         Component disp = withTimestamp(base, cfg);
         HSC_LAST_RENDERED = disp.getString();
+        com.simplechat.Debug.logRendered(HSC_LAST_RENDERED);
         reAdd(disp, sig, src, tag, ci);
     }
 
@@ -277,6 +289,42 @@ public abstract class ChatHudMixin implements IHscChat {
 
     /** true si un style porte un clic-commande (bouton d'action : run/suggest command).
      *  Les OpenUrl sont traités à part : ils interdisent le reformat, pas le masquage. */
+    /**
+     * Compact + les boutons du message d'origine. Seul un vrai bouton — un fragment entre crochets,
+     * "[PICK UP]" — est recollé ; recopier un fragment de phrase cliquable dupliquerait le texte
+     * qu'on vient justement de raccourcir. Tout le reste passe par le ClickEvent porté par la ligne.
+     */
+    private static Component hsc$withClickables(Component compact, Component original) {
+        net.minecraft.network.chat.MutableComponent out = Component.empty().append(compact);
+        String shortText = compact.getString();
+        original.visit((style, text) -> {
+            net.minecraft.network.chat.ClickEvent e = style.getClickEvent();
+            if (!(e instanceof net.minecraft.network.chat.ClickEvent.RunCommand)
+                    && !(e instanceof net.minecraft.network.chat.ClickEvent.SuggestCommand)) {
+                return java.util.Optional.empty();
+            }
+            // Un bouton est court et entre crochets. Tout ce qui ressemble à une phrase est
+            // exclu : le recoller réafficherait le texte qu'on vient de raccourcir.
+            String run = text.trim();
+            boolean button = run.length() <= 24 && run.startsWith("[") && run.endsWith("]")
+                    && !shortText.contains(run);
+            if (button) out.append(Component.literal(" ").append(Component.literal(run).setStyle(style)));
+            else out.withStyle(s -> s.withClickEvent(e).withHoverEvent(style.getHoverEvent()));
+            return java.util.Optional.empty();
+        }, net.minecraft.network.chat.Style.EMPTY);
+        return out;
+    }
+
+    /** Reporte le survol du message d'origine sur la ligne compacte, si elle n'en a pas déjà un. */
+    private static Component hsc$withHover(Component compact, Component original) {
+        if (compact.getStyle().getHoverEvent() != null) return compact;
+        net.minecraft.network.chat.HoverEvent hover = original.<net.minecraft.network.chat.HoverEvent>visit(
+                (style, text) -> java.util.Optional.ofNullable(style.getHoverEvent()),
+                net.minecraft.network.chat.Style.EMPTY).orElse(null);
+        if (hover == null) return compact;
+        return Component.empty().append(compact).withStyle(s -> s.withHoverEvent(hover));
+    }
+
     private static boolean hsc$hasActionClick(Component c) {
         return c.visit((style, text) -> {
             net.minecraft.network.chat.ClickEvent e = style.getClickEvent();
@@ -316,8 +364,11 @@ public abstract class ChatHudMixin implements IHscChat {
         sb.append("§r");
         net.minecraft.network.chat.TextColor col = style.getColor();
         if (col != null) {
-            Character code = LegacyText.INSTANCE.codeFor(col.getValue() & 0xFFFFFF);
+            int rgb = col.getValue() & 0xFFFFFF;
+            Character code = LegacyText.INSTANCE.codeFor(rgb);
+            // Hors palette vanilla : en §#RRGGBB, sinon la couleur d'Hypixel serait perdue ici.
             if (code != null) sb.append('§').append(code.charValue());
+            else sb.append(String.format("§#%06X", rgb));
         }
         if (style.isBold()) sb.append("§l");
         if (style.isItalic()) sb.append("§o");

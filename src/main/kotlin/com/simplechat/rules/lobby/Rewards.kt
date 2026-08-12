@@ -2,6 +2,7 @@ package com.simplechat.rules.lobby
 
 import com.simplechat.engine.RuleAction
 import com.simplechat.rules.Category
+import com.simplechat.rules.Fmt
 import com.simplechat.rules.Group
 import com.simplechat.rules.rules
 
@@ -15,7 +16,7 @@ object Rewards {
         rules(MYSTERY) {
             rule("mystery-reward", RuleAction.COMPACT,
                 "^You have claimed a (\\[.+?]) reward card!",
-                compact = { "§6Daily reward §7· §f${it[1]}" },
+                compact = { "§6Daily reward §7· ${Fmt.rawSpan(it.raw, it[1])}" },
                 sample = "You have claimed a [Legendary Mystery Dust] reward card!")
         } +
         rules(CLAIMED) {

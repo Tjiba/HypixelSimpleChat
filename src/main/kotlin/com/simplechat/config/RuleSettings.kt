@@ -67,9 +67,10 @@ object RuleSettings {
         }
     }
 
-    /** Phrases d'un groupe qui méritent leur propre réglage (aucune si le groupe n'en couvre qu'une). */
+    /** Phrases d'un groupe qui méritent leur propre réglage (aucune si le groupe n'en couvre qu'une
+     *  ou s'il se règle d'un bloc). */
     fun perPhrase(group: Group): List<Rule> =
-        Registry.byGroup[group].orEmpty().takeIf { it.size > 1 }.orEmpty()
+        Registry.byGroup[group].orEmpty().takeIf { group.split && it.size > 1 }.orEmpty()
 
     /** Nom de la catégorie dans le fichier de config ("Lobby", "SkyBlock", "System"). */
     fun configId(category: Category): String = categoryOf(category).id

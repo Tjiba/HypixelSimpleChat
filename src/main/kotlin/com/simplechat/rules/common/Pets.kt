@@ -1,5 +1,6 @@
 package com.simplechat.rules.common
 
+import com.simplechat.engine.LegacyText
 import com.simplechat.engine.RuleAction
 import com.simplechat.rules.Category
 import com.simplechat.rules.Group
@@ -27,7 +28,8 @@ object Pets {
             rule("pet-summon", RuleAction.COMPACT,
                 "^You (summoned|despawned) your .+",
                 compact = {
-                    val name = it.raw.substringAfter("your ").trim().replace(Regex("(?:§.)*!(?:§.)*\\s*$"), "")
+                    val name = it.raw.substringAfter("your ").trim()
+                        .replace(Regex("(?:${LegacyText.CODE})*!(?:${LegacyText.CODE})*\\s*$"), "")
                     if (it[1] == "summoned") "§a+ §r$name" else "§c- §r$name"
                 },
                 sample = "§aYou summoned your §6Baby Yeti§a!")

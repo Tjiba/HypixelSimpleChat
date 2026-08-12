@@ -20,12 +20,17 @@ class MenuLayoutTest {
         assertTrue(duplicated.isEmpty(), "réglages placés deux fois : $duplicated")
     }
 
-    @Test fun `general tab comes first and islands get their own tab`() {
+    @Test fun `general tab comes first and each content gets its own tab`() {
         assertEquals("General", skyblock.keys.first())
-        assertTrue("Dungeons" in skyblock.keys, "onglet d'île manquant : ${skyblock.keys}")
+        assertTrue("Dungeons" in skyblock.keys, "onglet manquant : ${skyblock.keys}")
     }
 
-    @Test fun `an island tab holds only its own settings, without a section header`() {
+    // Un onglet à plusieurs sections les affiche, dans l'ordre de déclaration des groupes.
+    @Test fun `a multi-section tab keeps its headers`() {
+        assertEquals(listOf("GENERAL", "TORRHUS", "HUNTING", "SAFARI"), skyblock["Foraging"]!!.keys.toList())
+    }
+
+    @Test fun `a single-section tab holds only its own settings, without a section header`() {
         val dungeons = skyblock["Dungeons"]!!
         assertEquals(listOf(""), dungeons.keys.toList())
         assertTrue("soloClass" in dungeons.values.first(), "soloClass devrait vivre avec Dungeons")
@@ -56,8 +61,11 @@ class MenuLayoutTest {
     @Test fun `the category bar covers every settable rule, once`() {
         val ids = MenuLayout.categoryBulk["SkyBlock"]!!
         assertEquals(ids.size, ids.distinct().size, "id en double dans la barre de catégorie")
+        // Un groupe = une entrée, sauf s'il se découpe en un réglage par phrase.
         val expected = Registry.groups.filter { it.category == Category.SKYBLOCK }
-            .sumOf { Registry.byGroup[it]!!.size.takeIf { n -> n > 1 } ?: 1 }
+            .sumOf { group ->
+                if (!group.split) 1 else Registry.byGroup[group]!!.size.takeIf { it > 1 } ?: 1
+            }
         assertEquals(expected, ids.size)
     }
 

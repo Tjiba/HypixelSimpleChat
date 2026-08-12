@@ -2,6 +2,7 @@ package com.simplechat.rules.common
 
 import com.simplechat.engine.RuleAction
 import com.simplechat.rules.Category
+import com.simplechat.rules.Fmt
 import com.simplechat.rules.Group
 import com.simplechat.rules.rules
 
@@ -50,7 +51,7 @@ object Events {
         // Avec ou sans « near … » (Hitman Egg, etc.).
         rule("hoppity-egg-found", RuleAction.HIDE,
             "HOPPITY'S HUNT You found an? (.+?) Egg",
-            compact = { "§6+ §f${it[1]} Egg" },
+            compact = { "§6+ ${Fmt.rawSpan(it.raw, it[1])} Egg" },
             sample = "§dHOPPITY'S HUNT §fYou found a Chocolate Breakfast Egg!",
             title = "Hoppity egg found")
         rule("sacrifice", RuleAction.HIDE,

@@ -2,6 +2,7 @@ package com.simplechat.rules.islands
 
 import com.simplechat.engine.RuleAction
 import com.simplechat.rules.Category
+import com.simplechat.rules.Fmt
 import com.simplechat.rules.Group
 import com.simplechat.rules.rules
 
@@ -10,12 +11,12 @@ object Dungeons {
 
     val DUNGEONS = Group("dungeons", "Dungeons", Category.SKYBLOCK, "DUNGEONS", RuleAction.HIDE,
         description = "Keys, doors, levers, chests, puzzles, blessings, boss/NPC lines",
-        island = "Dungeons")
+        tab = "Dungeons")
 
     val rules = rules(DUNGEONS) {
         rule("key-picked-up", RuleAction.HIDE,
             "^A (.+) Key was picked up!?",
-            compact = { "§a+ §f${it[1]} Key" },
+            compact = { "§a+ ${Fmt.rawSpan(it.raw, it[1])} Key" },
             sample = "§8A §5Wither Key §8was picked up!",
             title = "Key picked up")
         rule("key-right-click", RuleAction.HIDE,
@@ -24,7 +25,7 @@ object Dungeons {
             title = "Key usage hint")
         rule("door-opened", RuleAction.HIDE,
             "^(.+) opened a (?:.+ )?door!$",
-            compact = { "§7Door §8· §f${it[1]}" },
+            compact = { "§7Door §8· ${Fmt.rawSpan(it.raw, it[1])}" },
             sample = "§bTimo §7opened a §5WITHER §7door!",
             title = "Door opened")
         rule("door-sound", RuleAction.HIDE,
@@ -83,17 +84,17 @@ object Dungeons {
             title = "Fairy dialog")
         rule("dungeon-buff", RuleAction.HIDE,
             "^DUNGEON BUFF! (.+)$",
-            compact = { "§dBuff §7· §f${it[1]}" },
+            compact = { "§dBuff §7· ${Fmt.rawSpan(it.raw, it[1])}" },
             sample = "§dDUNGEON BUFF! Blessing of Life granted +5 HP!",
             title = "Dungeon buff")
         rule("blessing-picked-up", RuleAction.HIDE,
             "^A Blessing of (.+) was picked up!",
-            compact = { "§d+ §fBlessing of ${it[1]}" },
+            compact = { "§d+ ${Fmt.rawSpan(it.raw, "Blessing of ${it[1]}")}" },
             sample = "§dA Blessing of Power V was picked up!",
             title = "Blessing picked up")
         rule("blessing-obtained", RuleAction.HIDE,
             "^(.+) has obtained Blessing of (.+)!",
-            compact = { "§d+ §fBlessing of ${it[2]}" },
+            compact = { "§d+ ${Fmt.rawSpan(it.raw, "Blessing of ${it[2]}")}" },
             sample = "§dTimo has obtained Blessing of Wisdom!",
             title = "Blessing obtained by someone")
         // Sous-lignes de récap : indentées en jeu, aplaties par clean().
@@ -103,7 +104,7 @@ object Dungeons {
             title = "Blessing detail line")
         rule("dungeon-item-obtained", RuleAction.HIDE,
             "^(.+) has obtained (?:(?!Wither Key!|Blood Key!)(.+) Key!|(Superboom TNT(?: x[0-9])?|Revive Stone|Premium Flesh|Beating Heart)!)",
-            compact = { "§a+ §f${it[3].ifEmpty { "${it[2]} Key" }} §7(${it[1]})" },
+            compact = { "§a+ ${Fmt.rawColor(it.raw, it[3].ifEmpty { it[2] })}${it[3].ifEmpty { "${it[2]} Key" }} §7(${it[1]})" },
             sample = "§aTimo has obtained Superboom TNT x2!",
             title = "Item obtained by someone")
     }

@@ -3,9 +3,11 @@ package com.simplechat.ui
 import com.simplechat.config.RuleConfig
 import com.simplechat.engine.ChatRules
 import com.simplechat.engine.LegacyText
+import com.simplechat.engine.RuleAction
 import com.simplechat.engine.Seg
 import com.simplechat.engine.Verdict
 import com.simplechat.rules.Registry
+import com.simplechat.rules.Rule
 
 /**
  * Échantillons de chat rendus avec la config courante, pour l'aperçu live. Pur.
@@ -45,6 +47,24 @@ object Preview {
     private val ownerByRule: Map<String, String> = Registry.rules.associate { it.id to it.group.id }
 
     /**
+     * Groupes qu'on ne peut pas déplier : l'aperçu est le seul endroit où voir tout ce qu'ils
+     * couvrent. Les phrases qui ne produisent rien en sont exclues — celles laissées intactes
+     * (OFF) et celles qui disparaissent toujours (compact vide).
+     */
+    private val wholePhrases: Map<String, List<String>> = Registry.groups.filterNot { it.split }
+        .associate { group ->
+            group.id to Registry.byGroup[group].orEmpty()
+                .filter { it.default != RuleAction.OFF && !alwaysGone(it) }.map { it.sample }
+        }
+
+    /** Une phrase dont le compact est vide n'a pas d'aperçu : elle n'apparaît jamais en jeu. */
+    private fun alwaysGone(rule: Rule): Boolean {
+        val compact = rule.compact ?: return false
+        val m = rule.match(ChatRules.clean(rule.sample), rule.sample) ?: return false
+        return compact(m).isEmpty()
+    }
+
+    /**
      * Un bloc par réglage affiché : les phrases d'un même groupe déplié forment un seul bloc,
      * un groupe replié n'en montre qu'un exemple. Une ligne d'aperçu par ligne de réglage.
      */
@@ -69,7 +89,9 @@ object Preview {
             flush()
             val ruleIds = ruleIdsByGroup[id] ?: continue
             // Groupe déplié : ce sont ses phrases qui parlent, pas lui.
-            if (ruleIds.none { it in listed }) blocks.add(listOf(sampleByRule.getValue(ruleIds.first())))
+            if (ruleIds.none { it in listed }) blocks.add(
+                wholePhrases[id]?.takeIf { it.isNotEmpty() }
+                    ?: listOf(sampleByRule.getValue(ruleIds.first())))
         }
         flush()
         return blocks

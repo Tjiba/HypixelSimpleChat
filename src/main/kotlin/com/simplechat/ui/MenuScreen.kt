@@ -213,7 +213,9 @@ class MenuScreen(private val parent: Screen?) : Screen(
             items.addAll(byId.values)
             return
         }
-        categoryRow?.let { items.add(it) }
+        // La barre de catégorie écrit dans tous les onglets : elle n'a sa place que sur le premier,
+        // sinon chaque page a l'air d'offrir un réglage qui ne parle pas que d'elle.
+        if (topTab == views.keys.first()) categoryRow?.let { items.add(it) }
         val sections = views[topTab] ?: views.values.first()
         for ((title, ids) in sections) {
             val group = ids.mapNotNull { id ->
@@ -313,7 +315,8 @@ class MenuScreen(private val parent: Screen?) : Screen(
         for (t in topTabRects()) {
             val on = t.key == topTab
             val hover = inRect(mx, my, t.x1, t.y1, t.x2, t.y2)
-            rr(gfx, t.x1, t.y1, t.x2, t.y2, 5, if (on) MenuTheme.ACCENT else if (hover) MenuTheme.FIELD_HOVER else MenuTheme.SUBTAB_IDLE)
+            rr(gfx, t.x1, t.y1, t.x2, t.y2, 5,
+                if (on) MenuTheme.tabAccent(t.key) else if (hover) MenuTheme.FIELD_HOVER else MenuTheme.SUBTAB_IDLE)
             gfx.centeredText(font, t.label, (t.x1 + t.x2) / 2, t.y1 + (topTabH - font.lineHeight) / 2, if (on) MenuTheme.TEXT_TITLE else MenuTheme.TEXT_DIM)
         }
         gfx.enableScissor(x1, listTop(), x2, bot)
@@ -342,7 +345,7 @@ class MenuScreen(private val parent: Screen?) : Screen(
     private fun renderHeader(gfx: GuiGraphicsExtractor, header: Header, top: Int) {
         val label = "§l${header.title}"
         val ty = top + headerH - font.lineHeight - 3
-        gfx.text(font, label, mainX1() + 8, ty, MenuTheme.TEXT_FAINT)
+        gfx.text(font, label, mainX1() + 8, ty, MenuTheme.sectionTint(topTab, header.title))
         val lineX = mainX1() + 8 + font.width(label) + 8
         gfx.fill(lineX, ty + font.lineHeight / 2, settingsX2() - 10, ty + font.lineHeight / 2 + 1, MenuTheme.GLASS_BORDER)
     }

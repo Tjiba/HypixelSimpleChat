@@ -15,7 +15,7 @@ object MenuLayout {
     private val SECTION_ORDER = listOf("GENERAL", "WORLD & EVENTS", "COMBAT", "ECONOMY")
 
     /** Réglages qui ne viennent pas d'une règle : placés à la main, en tête de leur bloc.
-     *  Clé = nom de section, d'île, ou de catégorie sans section (Lobby / System). */
+     *  Clé = nom de section, d'onglet, ou de catégorie sans section (Lobby / System). */
     private val EXTRAS = mapOf(
         "GENERAL" to listOf("enabled", "customPatterns"),
         "WORLD & EVENTS" to listOf("hoppity"),
@@ -51,17 +51,25 @@ object MenuLayout {
     private fun build(): Map<String?, LinkedHashMap<String, LinkedHashMap<String, List<String>>>> {
         val skyblock = Registry.groups.filter { it.category == Category.SKYBLOCK }
 
-        val bySection = skyblock.filter { it.island == null }.groupBy { it.section }
+        val bySection = skyblock.filter { it.tab == null }.groupBy { it.section }
         val general = LinkedHashMap<String, List<String>>()
         for (section in SECTION_ORDER + bySection.keys.filter { it !in SECTION_ORDER }) {
             val ids = EXTRAS[section].orEmpty() + bySection[section].orEmpty().flatMap { withPhrases(it) }
             if (ids.isNotEmpty()) general[section] = ids
         }
 
-        // Une île = un onglet, sans en-tête de section : la page ne parle que d'elle.
+        // Un contenu = un onglet. Une seule section dedans : pas d'en-tête, la page ne parle que
+        // d'elle. Plusieurs : en-têtes, dans l'ordre de déclaration des groupes.
         val tabs = linkedMapOf("General" to general)
-        for ((island, groups) in skyblock.filter { it.island != null }.groupBy { it.island!! }) {
-            tabs[island] = linkedMapOf("" to EXTRAS[island].orEmpty() + groups.flatMap { withPhrases(it) })
+        for ((tab, groups) in skyblock.filter { it.tab != null }.groupBy { it.tab!! }) {
+            val extras = EXTRAS[tab].orEmpty()
+            val bySection = groups.groupBy { it.section }
+            val page = LinkedHashMap<String, List<String>>()
+            if (bySection.size == 1) page[""] = extras + groups.flatMap { withPhrases(it) }
+            else bySection.entries.forEachIndexed { i, (section, inSection) ->
+                page[section] = (if (i == 0) extras else emptyList()) + inSection.flatMap { withPhrases(it) }
+            }
+            tabs[tab] = page
         }
 
         val views = linkedMapOf<String?, LinkedHashMap<String, LinkedHashMap<String, List<String>>>>(

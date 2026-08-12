@@ -14,6 +14,13 @@ class ChatRulesTest {
             ChatRules.clean("§b[MVP§6+§b] Name§f §6joined the lobby!"))
     }
 
+    // Hypixel colore hors palette vanilla : ces couleurs arrivent en §#RRGGBB, elles doivent
+    // disparaître du texte comme les autres, sinon plus aucune règle ne matche la ligne.
+    @Test fun `strips custom rgb codes`() {
+        assertEquals("PETALFALL! You felled the entire Tree!",
+            ChatRules.clean("§#3BE63B§lPETALFALL! §r§fYou felled the entire §#3BE63BTree§f!"))
+    }
+
     // guild/party ne sont plus HARD_PASS (Task 1 Phase A) : ils seront routés vers
     // ChannelFormat en Task 6. Le formatage guild/party revient à ce moment-là.
     @Test fun `whisper never touched`() {
@@ -117,6 +124,8 @@ class ChatRulesTest {
         val b = cfg.copy(actions = mapOf("abiphone-ring" to RuleAction.COMPACT))
         assertEquals(Verdict.Replace("§a✆ §7Ring…"),
             ChatRules.evaluate("§a✆ RING...", b))
+        assertEquals(Verdict.Replace("§a✆ §7Ring…"),
+            ChatRules.evaluate("§a✆ RING... RING... RING...  §2§l[PICK UP]", b))
     }
 
     @Test fun `skyblock pet summon keeps rarity color`() {
@@ -202,8 +211,31 @@ class ChatRulesTest {
 
     @Test fun `skyhanni block 2 hides`() {
         assertEquals(Verdict.Hide, ChatRules.evaluate("§b✦ §r§7You earned §r§b120 §r§7Mystery Dust!", cfg))
-        assertEquals(Verdict.Hide, ChatRules.evaluate("§aYou earned §r§a1,234 GEXP from playing SkyBlock!", cfg))
         assertEquals(Verdict.Hide, ChatRules.evaluate("§7Your §r§aRabbit Barn §r§7capacity has been increased to 5!", cfg))
+    }
+
+    // Le milestone reste, la progression saute. Jamais masqué : un gain qu'on ne voit plus
+    // passe pour perdu.
+    @Test fun `skyblock xp keeps its milestone`() {
+        assertEquals(Verdict.Replace("§b+2 SB XP §7(Bag Upgrades)"),
+            ChatRules.evaluate("§b+2 SkyBlock XP §7(Bag Upgrades) §8(69/100)", cfg))
+        assertEquals(Verdict.Replace("§b+1,250 SB XP"),
+            ChatRules.evaluate("§b+1,250 SkyBlock XP", cfg))
+        // Un pavé de fin de collection contient un gain d'XP sans en être un : le remplacer
+        // effacerait le palier, la recette et les autres récompenses.
+        assertEquals(Verdict.Pass, ChatRules.evaluate(
+            "§6COLLECTION LEVEL UP §eRuby Veilshroom §7V➜VI  §aREWARDS  §9Veilshroom Bunch §7Recipe  §b+4 SkyBlock XP", cfg))
+    }
+
+    // Tout ce qui annonce de l'XP reste visible par défaut : un gain qu'on ne voit plus passe
+    // pour perdu. Raccourci, pas masqué.
+    @Test fun `xp gains are shortened, never hidden by default`() {
+        assertEquals(Verdict.Replace("§2+1,234 GEXP"),
+            ChatRules.evaluate("§aYou earned §r§a1,234 GEXP from playing SkyBlock!", cfg))
+        assertEquals(Verdict.Replace("§e+25% skill XP"),
+            ChatRules.evaluate("§eBONUS! Temporarily earn 25% more skill experience!", cfg))
+        assertEquals(Verdict.Replace("§8+120 Experience Team Bonus"),
+            ChatRules.evaluate("§e+120 Experience Team Bonus", cfg))
     }
 
     @Test fun `server routing compacted`() {
@@ -211,9 +243,28 @@ class ChatRulesTest {
             ChatRules.evaluate("Sending to server mega8E...", cfg))
     }
 
+    // Le nom garde la couleur qu'Hypixel lui a donnée, ici le §b du rank.
     @Test fun `loot share compacted`() {
-        assertEquals(Verdict.Replace("§6Loot share §7· §f__Anoteros__"),
+        assertEquals(Verdict.Replace("§6Loot share §7· §b__Anoteros__"),
             ChatRules.evaluate("§eLOOT SHARE §fYou received loot for assisting §b__Anoteros__§f!", cfg))
+    }
+
+    // Forme chasse : le mob est déjà dans le nom du shard, seuls le butin et le joueur restent.
+    @Test fun `loot share from a catch`() {
+        assertEquals(Verdict.Replace("§6Loot share §7· §9Rockmite Shard §8· §aROTOTO1213"),
+            ChatRules.evaluate(
+                "§e§lLOOT SHARE! §7You received a §9Rockmite Shard§7 from §aROTOTO1213§7 catching a §9Rockmite§7!", cfg))
+        // La quantité est en §7 chez Hypixel, l'item en §f : les deux couleurs sont conservées.
+        assertEquals(Verdict.Replace("§6Loot share §7· §72x §fTepid Shard §8· §bnon00w"),
+            ChatRules.evaluate(
+                "§e§lLOOT SHARE! §7You received 2x §fTepid Shard§7 from §bnon00w§7 catching a §fTepid§7!", cfg))
+    }
+
+    // L'autre forme : Hypixel nomme le butin au lieu de dire « loot ».
+    @Test fun `loot share names the drop when hypixel does`() {
+        assertEquals(Verdict.Replace("§6Loot share §7· §b2 §9Puck §fShards §8· §aILikeMicrowave"),
+            ChatRules.evaluate(
+                "§eLOOT SHARE §fYou received §b2 §9Puck §fShards for assisting §aILikeMicrowave§f!", cfg))
     }
 
     @Test fun `damage compact is colored and short`() {

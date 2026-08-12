@@ -1,5 +1,6 @@
 package com.simplechat.rules.lobby
 
+import com.simplechat.engine.LegacyText
 import com.simplechat.engine.RuleAction
 import com.simplechat.rules.Category
 import com.simplechat.rules.Group
@@ -22,8 +23,8 @@ object Joins {
         rule("lobby-join", RuleAction.HIDE,
             "^(>+ )?\\[?[A-Za-z+]* ?[\\w+]* ?]?.* joined the lobby!",
             compact = {
-                it.raw.replaceFirst(Regex("^(?:\\s|>|§.)+"), "")
-                    .replaceFirst(Regex("(?:§.)?\\s*joined the lobby!.*$"), "")
+                it.raw.replaceFirst(Regex("^(?:\\s|>|${LegacyText.CODE})+"), "")
+                    .replaceFirst(Regex("(?:${LegacyText.CODE})?\\s*joined the lobby!.*$"), "")
                     .trim() + " §8joined"
             },
             sample = "§b[MVP§c+§b] Notch §ejoined the lobby!")

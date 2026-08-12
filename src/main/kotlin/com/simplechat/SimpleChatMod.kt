@@ -28,6 +28,13 @@ object SimpleChatMod : ClientModInitializer {
                     .then(ClientCommands.literal("update").executes {
                         Updater.checkManually(it.source.client); 1
                     })
+                    .then(ClientCommands.literal("debug").executes { ctx ->
+                        Debug.enabled = !Debug.enabled
+                        val state = if (Debug.enabled) "§aon" else "§coff"
+                        ctx.source.client.player?.sendSystemMessage(
+                            Component.literal("§6[§bSimple§fChat§6] §7Debug log $state§7 — see logs/latest.log"))
+                        1
+                    })
                     .executes { pendingConfig = true; 1 }
             )
             // Brigadier distingue la casse : /HSC n'est pas /hsc. Tout-minuscule et tout-majuscule

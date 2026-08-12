@@ -39,7 +39,7 @@ object Notifications {
             title = "Mochibear caught")
         rule("achievement", RuleAction.HIDE,
             "^Achievement Unlocked: (.+)$",
-            compact = { "§eAchievement §7· §f${it[1]}" },
+            compact = { "§eAchievement §7· ${Fmt.rawSpan(it.raw, it[1])}" },
             sample = "§eAchievement Unlocked: Bedwars Banker",
             title = "Achievement unlocked")
         rule("kernel-donation", RuleAction.HIDE,

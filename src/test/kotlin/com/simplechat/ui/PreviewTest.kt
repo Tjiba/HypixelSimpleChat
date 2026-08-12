@@ -1,6 +1,7 @@
 package com.simplechat.ui
 
 import com.simplechat.engine.ChatRules
+import com.simplechat.engine.RuleAction
 import com.simplechat.rules.Registry
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -24,8 +25,28 @@ class PreviewTest {
         checkAligned(MenuLayout.views["SkyBlock"]!!["General"]!!.values.flatten())
     }
 
-    @Test fun `island tab is aligned`() {
+    @Test fun `a content tab is aligned`() {
         checkAligned(MenuLayout.views["SkyBlock"]!!["Dungeons"]!!.values.flatten())
+        checkAligned(MenuLayout.views["SkyBlock"]!!["Foraging"]!!.values.flatten())
+    }
+
+    // Une phrase au compact vide disparaît toujours : la montrer barrée laisserait croire qu'elle
+    // dépend du réglage, alors qu'elle ne s'affichera jamais.
+    @Test fun `a phrase that always vanishes has no preview line`() {
+        val hive = Preview.samplesFor(listOf("foraging-hive"))
+        assertTrue(hive.none { it.contains("honeyhive") }, "la ligne toujours masquée s'affiche : $hive")
+        assertEquals(2, hive.size)
+    }
+
+    // Un groupe non dépliable n'a qu'une ligne de réglage : l'aperçu doit quand même montrer
+    // les phrases qu'elle englobe, sinon rien ne dit ce qu'on est en train de régler. Sauf
+    // celles qu'on laisse passer intactes (OFF) : elles n'ont rien à montrer.
+    @Test fun `a whole group previews the phrases it changes`() {
+        val phrases = Registry.rules.filter { it.group.id == "foraging-torrhus" }
+        assertTrue(phrases.size > 1, "Torrhus devrait couvrir plusieurs messages")
+        val changed = phrases.filter { it.default != RuleAction.OFF }
+        assertTrue(changed.size < phrases.size, "Torrhus devrait avoir au moins une phrase OFF")
+        assertEquals(changed.map { it.sample }, Preview.samplesFor(listOf("foraging-torrhus")))
     }
 
     // Une ligne d'aperçu par ligne de réglage : replié = un exemple, déplié = tous.

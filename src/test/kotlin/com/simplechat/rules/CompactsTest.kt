@@ -29,16 +29,95 @@ class CompactsTest {
         val c = cfg("notifications")
         assertEquals(Verdict.Replace("§aTipped §f12 §7(4 games)"),
             ChatRules.evaluate("§aYou tipped 12 players in 4 games!", c))
-        assertEquals(Verdict.Replace("§eAchievement §7· §fBedwars Banker"),
+        assertEquals(Verdict.Replace("§eAchievement §7· §eBedwars Banker"),
             ChatRules.evaluate("§eAchievement Unlocked: Bedwars Banker", c))
     }
 
     @Test fun `dungeons compacted`() {
         val c = cfg("dungeons")
-        assertEquals(Verdict.Replace("§a+ §fWither Key"),
+        assertEquals(Verdict.Replace("§a+ §5Wither Key"),
             ChatRules.evaluate("§8A §5Wither Key §8was picked up!", c))
-        assertEquals(Verdict.Replace("§d+ §fBlessing of Power V"),
+        assertEquals(Verdict.Replace("§d+ §dBlessing of Power V"),
             ChatRules.evaluate("§dA Blessing of Power V was picked up!", c))
+        // Un nom de joueur garde son rang entier, avec le § interne du "+".
+        assertEquals(Verdict.Replace("§7Door §8· §b[MVP§c+§b] Timo"),
+            ChatRules.evaluate("§b[MVP§c+§b] Timo §7opened a §5WITHER §7door!", c))
+    }
+
+    @Test fun `foraging compacted`() {
+        val c = RuleConfig.DEFAULT
+        assertEquals(Verdict.Replace("§a§lPETALFALL!"),
+            ChatRules.evaluate("§a§lPETALFALL! §r§fYou felled the entire §aTree§f!", c))
+        // Le vert d'Hypixel n'est pas dans la palette vanilla : le compact reprend le sien.
+        assertEquals(Verdict.Replace("§#3BE63B§lPETALFALL!"),
+            ChatRules.evaluate("§#3BE63B§lPETALFALL! §r§fYou felled the entire §#3BE63BTree§f!", c))
+        // L'item garde sa rareté ; sans quantité, pas de "x" qui traîne.
+        assertEquals(Verdict.Replace("§6§lFLOOR DROP! §r§fFig Log §7x512"),
+            ChatRules.evaluate("§6§lFLOOR DROP! §fYou found Fig Log §7x512 §fon the ground!", c))
+        assertEquals(Verdict.Replace("§6§lFLOOR DROP! §r§5Ancient Bark"),
+            ChatRules.evaluate("§6§lFLOOR DROP! §fYou found §5Ancient Bark §fon the ground!", c))
+        assertEquals(Verdict.Replace("§9Mangrove Tree Gift §8- §a100% §8| §e5 rewards"),
+            ChatRules.evaluate("§9Mangrove Tree Gift. §7You helped cut §a100.0% §7and gained §e5 rewards§a!", c))
+        // Les couleurs suivent le message brut, pas une table écrite à la main.
+        assertEquals(Verdict.Replace("§bHelix Tree Gift §8- §a86.8% §8| §e4 rewards"),
+            ChatRules.evaluate("§bHelix Tree Gift. §7You helped cut §a86.8% §7and gained §e4 rewards§a!", c))
+        // Sous 10% de participation, Hypixel passe le pourcentage en rouge : le compact le garde.
+        assertEquals(Verdict.Replace("§dFig Tree Gift §8- §c9.8% §8| §e0 rewards"),
+            ChatRules.evaluate("§dFig Tree Gift. §7You helped cut §c9.8% §7and gained §e0 rewards§a!", c))
+    }
+
+    @Test fun `beeheemoth compacted`() {
+        val c = cfg("foraging-torrhus")
+        assertEquals(Verdict.Replace("§d§lBEEHEEMOTH! §aCritter Safari Entrance"),
+            ChatRules.evaluate("§dBEEHEEMOTH! §fA §dBeeheemoth §fhas spawned at §aCritter Safari Entrance§f!", c))
+        assertEquals(Verdict.Replace("§d§lBEEHEEMOTH! §7slowing"),
+            ChatRules.evaluate("§dBEEHEEMOTH! §fThe §dBeeheemoth §fis starting to slow down!", c))
+        assertEquals(Verdict.Replace("§d§lBEEHEEMOTH! §aexhausted"),
+            ChatRules.evaluate("§dBEEHEEMOTH! §fThe §dBeeheemoth §fis exhausted - not long now!", c))
+        // Couleur hors palette vanilla : elle survit au compact au lieu d'être approximée.
+        assertEquals(Verdict.Replace("§#3BE63B§lBEEHEEMOTH! §aMega Tree"),
+            ChatRules.evaluate("§#3BE63BBEEHEEMOTH! §fA §dBeeheemoth §fhas spawned at §aMega Tree§f!", c))
+    }
+
+    @Test fun `hive compacted`() {
+        val c = cfg("foraging-hive")
+        // La ligne d'attente disparaît même quand le réglage du groupe est sur COMPACT.
+        assertEquals(Verdict.Hide,
+            ChatRules.evaluate("§7§oYou stick your hand into the honeyhive and feel around...", c))
+        assertEquals(Verdict.Replace("§6§lHIVE §r§fHoneycomb §7x21 §8+ §aEnchanted Honeycomb"),
+            ChatRules.evaluate("§6§lHIVE! §fYou found Honeycomb §7x21 §fand §aEnchanted Honeycomb§f!", c))
+        assertEquals(Verdict.Replace("§7Honeybuzz appeared"),
+            ChatRules.evaluate("§7§oA Honeybuzz appeared, angry at you for stealing its honey!", c))
+    }
+
+    // Un sac se remplit et se vide : les deux sens sont reconnus, la couleur suit le signe.
+    @Test fun `sacks compacted both ways`() {
+        val c = cfg("sacks")
+        assertEquals(Verdict.Replace("§a+64 Cobblestone"),
+            ChatRules.evaluate("§6[Sacks] §a+64 Cobblestone", c))
+        assertEquals(Verdict.Replace("§c-12 items. (Last 5s.)"),
+            ChatRules.evaluate("§6[Sacks] §c-12§e items.§8 (Last 5s.)", c))
+    }
+
+    @Test fun `hunted mobs compacted`() {
+        assertEquals(Verdict.Replace("§6§lHONEY TREE! §r§cWoodlouse"),
+            ChatRules.evaluate("§6§lHONEY TREE! §cWoodlouse §6has appeared!", RuleConfig.DEFAULT))
+        // Quantité, nom et « Shards » gardent chacun leur couleur.
+        assertEquals(Verdict.Replace("§fx2 Honeybuzz §aShards"),
+            ChatRules.evaluate("§aYou caught §fx2 Honeybuzz §aShards!", RuleConfig.DEFAULT))
+    }
+
+    // Un seul réglage pour tous les mobs de chasse : le nom et sa couleur viennent du brut.
+    @Test fun `escaped mobs compacted`() {
+        val c = cfg("foraging-hunting")
+        assertEquals(Verdict.Replace("§dBeeheemoth escaped"),
+            ChatRules.evaluate("§cYou looked away! §dBeeheemoth escaped§c!", c))
+        assertEquals(Verdict.Replace("§aWoodlouse escaped"),
+            ChatRules.evaluate("§cYou looked away! §aWoodlouse escaped§c!", c))
+        assertEquals(Verdict.Replace("§fHoneyhog escaped"),
+            ChatRules.evaluate("§cYou didn't reel! §fHoneyhog escaped§c!", c))
+        assertEquals(Verdict.Replace("§fHoneyhog escaped"),
+            ChatRules.evaluate("§cYou reeled too early! §fHoneyhog escaped§c!", c))
     }
 
     @Test fun `abilities compacted`() {

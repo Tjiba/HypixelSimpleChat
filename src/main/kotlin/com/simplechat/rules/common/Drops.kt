@@ -10,6 +10,20 @@ object Drops {
 
     val REWARDS = Group("rewards", "Rewards / drops", Category.SKYBLOCK, "WORLD & EVENTS", RuleAction.HIDE,
         description = "Essence finds, Event EXP bonuses, unclaimed rewards, radio signal, shard charms, expired combo")
+    val SKYBLOCK_XP = Group("skyblockXp", "SkyBlock XP gains", Category.SKYBLOCK, "WORLD & EVENTS", RuleAction.COMPACT,
+        description = "Every '+N SkyBlock XP' line — shortened, never hidden")
+
+    /**
+     * Déclarée avant tout le reste : un gain d'XP SkyBlock est traité ici et par aucune autre règle.
+     * Le milestone reste, la progression (69/100) saute. Ancrée des deux côtés : un pavé multi-ligne
+     * (COLLECTION LEVEL UP) qui contient un gain d'XP n'est pas un gain d'XP.
+     */
+    val skyblockXp = rules(SKYBLOCK_XP) {
+        rule("skyblock-xp", RuleAction.COMPACT,
+            "^\\+([\\d,.]+) SkyBlock XP(?: \\((.+?)\\))?(?: \\([\\d,]+/[\\d,]+\\))?$",
+            compact = { "§b+${it[1]} SB XP" + if (it[2].isEmpty()) "" else " §7(${it[2]})" },
+            sample = "§b+2 SkyBlock XP §7(Bag Upgrades) §8(69/100)")
+    }
 
     val rules = rules(REWARDS) {
         rule("essence-found", RuleAction.HIDE,
@@ -35,17 +49,18 @@ object Drops {
             "RARE DROP! (?:Hunk of Blue Ice.*|Beating Heart .+)",
             sample = "§6RARE DROP! Hunk of Blue Ice",
             title = "Rare drop notice")
-        rule("exp-from-playing", RuleAction.HIDE,
+        // XP : raccourci, jamais masqué par défaut — un gain qu'on ne voit plus passe pour perdu.
+        rule("exp-from-playing", RuleAction.COMPACT,
             "^You earned ([\\d,]+) (Event EXP|GEXP) from playing ",
             compact = { if (it[2] == "GEXP") "§2+${it[1]} GEXP" else "§e+${it[1]} Event EXP" },
             sample = "§eYou earned 633 Event EXP from playing SkyBlock!",
             title = "Event EXP / GEXP earned")
-        rule("skill-xp-bonus", RuleAction.HIDE,
+        rule("skill-xp-bonus", RuleAction.COMPACT,
             "^BONUS! Temporarily earn (\\d+)% more skill experience!",
             compact = { "§e+${it[1]}% skill XP" },
             sample = "§eBONUS! Temporarily earn 25% more skill experience!",
             title = "Skill XP bonus")
-        rule("experience-team-bonus", RuleAction.HIDE,
+        rule("experience-team-bonus", RuleAction.GREY,
             "Experience Team Bonus",
             sample = "§e+120 Experience Team Bonus",
             title = "Experience team bonus")

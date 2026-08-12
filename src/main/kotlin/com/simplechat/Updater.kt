@@ -24,10 +24,10 @@ object Updater {
         .getModContainer("minecraft")
         .map { it.metadata.version.friendlyString }.orElse(null)
 
-    private val API_URL = "https://api.modrinth.com/v2/project/hypixel-simple-chat/version" +
+    private val API_URL = "https://api.modrinth.com/v2/project/hypixelsimplechat/version" +
         (MC_VERSION?.let { "?loaders=%5B%22fabric%22%5D&game_versions=%5B%22$it%22%5D" } ?: "")
 
-    private const val MODRINTH_PAGE = "https://modrinth.com/mod/hypixel-simple-chat"
+    private const val MODRINTH_PAGE = "https://modrinth.com/mod/hypixelsimplechat"
     private var latest: String? = null
     private var notified = false
 

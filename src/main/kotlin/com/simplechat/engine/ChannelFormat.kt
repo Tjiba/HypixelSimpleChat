@@ -77,10 +77,13 @@ object ChannelFormat {
         val msg = rest.substring(sep + 2)
 
         val out = ArrayList<Seg>()
-        // Niveau / emblème : couleur du palier SkyBlock (level/40).
-        val lvlColor = levelColor(level?.toIntOrNull() ?: 0)
+        // Niveau : couleur d'Hypixel telle quelle ; le palier (level/40) ne sert que si le
+        // message ne la porte pas.
         if (level != null && !cfg.prefix.hideLevel) {
-            out.add(Seg("[", BRACKET)); out.add(Seg(level, lvlColor)); out.add(Seg("]", BRACKET)); out.add(Seg(" ", null))
+            val fallback = Seg(level, levelColor(level.toIntOrNull() ?: 0))
+            out.add(Seg("[", BRACKET))
+            out.addAll(rawColored(raw, level).takeIf { it.any { s -> s.color != null } } ?: listOf(fallback))
+            out.add(Seg("]", BRACKET)); out.add(Seg(" ", null))
         }
         if (emblem != null && !cfg.prefix.hideEmblem) { out.addAll(rawColored(raw, emblem)); out.add(Seg(" ", null)) }
         out.addAll(rankNameSegs(raw, nameHead, cfg.publicStyle))
@@ -251,17 +254,28 @@ object ChannelFormat {
 
     private val COLOR_CHARS = "0123456789abcdef"
 
+    /** Longueur du code legacy commençant à [i], 0 si ce n'en est pas un. `§#RRGGBB` fait 8. */
+    private fun codeLenAt(raw: String, i: Int): Int {
+        if (raw[i] != '§' && raw[i] != '&') return 0
+        if (i + 7 < raw.length && raw[i + 1] == '#' &&
+            (i + 2..i + 7).all { raw[it].lowercaseChar() in COLOR_CHARS }) return 8
+        return if (i + 1 < raw.length) 2 else 0
+    }
+
     private fun activeColorBefore(raw: String, pos: Int): String {
-        var i = pos - 1
-        while (i >= 1) {
-            if (raw[i - 1] == '§' || raw[i - 1] == '&') {
-                val c = raw[i].lowercaseChar()
-                if (c in COLOR_CHARS) return "§" + raw[i]
-                if (c == 'r') return "" // reset : pas de couleur héritée
+        var i = 0
+        var color = ""
+        while (i < pos) {
+            val len = codeLenAt(raw, i)
+            if (len == 0) { i++; continue }
+            val c = raw[i + 1].lowercaseChar()
+            when {
+                len == 8 || c in COLOR_CHARS -> color = raw.substring(i, i + len)
+                c == 'r' -> color = "" // reset : pas de couleur héritée
             }
-            i--
+            i += len
         }
-        return ""
+        return color
     }
 
     // Index dans raw où le texte nettoyé nameHead commence (en ignorant les codes couleur).
@@ -279,9 +293,9 @@ object ChannelFormat {
         var ri = start; var ni = 0
         while (ni < needle.length) {
             if (ri >= raw.length) return false
-            val ch = raw[ri]
-            if ((ch == '§' || ch == '&') && ri + 1 < raw.length) { ri += 2; continue }
-            if (ch != needle[ni]) return false
+            val len = codeLenAt(raw, ri)
+            if (len > 0) { ri += len; continue }
+            if (raw[ri] != needle[ni]) return false
             ri++; ni++
         }
         return true
@@ -290,8 +304,8 @@ object ChannelFormat {
     private fun rawSliceForClean(raw: String, start: Int, len: Int): String {
         var ri = start; var count = 0
         while (ri < raw.length && count < len) {
-            val ch = raw[ri]
-            if ((ch == '§' || ch == '&') && ri + 1 < raw.length) { ri += 2; continue }
+            val code = codeLenAt(raw, ri)
+            if (code > 0) { ri += code; continue }
             ri++; count++
         }
         return raw.substring(start, ri)

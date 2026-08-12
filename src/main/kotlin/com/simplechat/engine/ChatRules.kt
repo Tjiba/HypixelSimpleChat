@@ -8,7 +8,7 @@ import java.util.regex.Pattern
 /** Moteur pur : texte brut Hypixel -> Verdict. Aucun import Minecraft. */
 object ChatRules {
 
-    private val COLOR_CODE = Pattern.compile("[§&][0-9a-fk-orA-FK-OR]")
+    private val COLOR_CODE = Pattern.compile(LegacyText.CODE)
 
     /** Retire les codes couleur/format et compacte les espaces. */
     fun clean(raw: String): String =
@@ -16,7 +16,7 @@ object ChatRules {
 
     // Avertissement anti-phishing greffé par Hypixel aux messages contenant "discord" (suffixe inline).
     private val DISCORD_WARNING = Pattern.compile(
-        "(?:[§&][0-9a-fk-orA-FK-OR]|\\s)*Please be mindful of Discord links in chat as they may pose a security risk\\.?(?:[§&][0-9a-fk-orA-FK-OR]|\\s)*$",
+        "(?:${LegacyText.CODE}|\\s)*Please be mindful of Discord links in chat as they may pose a security risk\\.?(?:${LegacyText.CODE}|\\s)*$",
         Pattern.CASE_INSENSITIVE)
 
     /** Retire l'avertissement Discord greffé par Hypixel, en gardant le reste du message. */

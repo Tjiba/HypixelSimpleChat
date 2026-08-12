@@ -18,6 +18,18 @@ class ChannelFormatTest {
         assert(segs.any { it.text.contains("MVP") && it.color == 0x55FFFF })
     }
 
+    // Le niveau garde la couleur qu'Hypixel lui donne. Le palier (level/40) ne sert que si le
+    // message ne la porte pas — ici 100 tomberait sur le jaune du palier, pas sur ce vert.
+    @Test fun `level keeps hypixel color`() {
+        val segs = ChannelFormat.format("§8[§a100§8] §b[MVP§c+§b] Milo§f: hi", Channel.PUBLIC, cfg)!!
+        assertEquals(0x55FF55, segs.first { it.text == "100" }.color)
+    }
+
+    @Test fun `level falls back to the tier color`() {
+        val segs = ChannelFormat.format("[100] §b[MVP§c+§b] Milo§f: hi", Channel.PUBLIC, cfg)!!
+        assertEquals(0xFFFF55, segs.first { it.text == "100" }.color)
+    }
+
     @Test fun `public recolor on forces message color`() {
         val c = cfg.copy(publicStyle = cfg.publicStyle.copy(recolorMessage = true, showRank = true))
         val segs = ChannelFormat.format("[221] ⛃ §b[MVP§c+§b] Milo§f: selling", Channel.PUBLIC, c)!!

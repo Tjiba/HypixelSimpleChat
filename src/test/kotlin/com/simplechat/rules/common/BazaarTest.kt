@@ -21,7 +21,8 @@ class BazaarTest {
     @Test fun `compacted`() {
         assertEquals(Verdict.Replace("§6BZ §7· selling…"),
             ChatRules.evaluate("§6[Bazaar] §7Submitting sell offer...", compact))
-        assertEquals(Verdict.Replace("§6BZ §a✔ §f64x Enchanted Cobblestone"),
+        // Quantité et item ont chacun leur couleur chez Hypixel : le compact les garde telles quelles.
+        assertEquals(Verdict.Replace("§6BZ §a✔ §a64x §fEnchanted Cobblestone"),
             ChatRules.evaluate("§6Buy Order Setup! §a64x §fEnchanted Cobblestone", compact))
         assertEquals(Verdict.Replace("§6AH §7· setup…"),
             ChatRules.evaluate("§7Setting up the auction...", compact))

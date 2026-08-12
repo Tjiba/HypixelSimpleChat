@@ -10,6 +10,15 @@ object LegacyText {
         'c' to 0xFF5555, 'd' to 0xFF55FF, 'e' to 0xFFFF55, 'f' to 0xFFFFFF,
     )
 
+    /** Un code couleur : `§a`, ou `§#RRGGBB` hors palette vanilla. */
+    const val COLOR = "[§&](?:#[0-9A-Fa-f]{6}|[0-9a-fA-F])"
+
+    /** Un code de format : gras, italique, reset… */
+    const val FORMAT = "[§&][k-orK-OR]"
+
+    /** N'importe quel code legacy. */
+    const val CODE = "(?:$COLOR|$FORMAT)"
+
     /** Code `§` de la couleur vanilla exacte, ou null si le RGB n'est pas dans la palette. */
     fun codeFor(rgb: Int): Char? = COLORS.entries.firstOrNull { it.value == (rgb and 0xFFFFFF) }?.key
 
