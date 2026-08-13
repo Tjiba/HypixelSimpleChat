@@ -7,6 +7,9 @@ import com.google.gson.JsonParser
 import net.fabricmc.loader.api.FabricLoader
 import org.slf4j.LoggerFactory
 import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.StandardCopyOption
+import java.nio.file.StandardCopyOption.REPLACE_EXISTING as REPLACE
 import kotlin.properties.PropertyDelegateProvider
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
@@ -82,11 +85,12 @@ open class HscCategory(val id: String) : ConfigGroup()
  * Config racine : entrées + catégories, persistée en JSON via Gson (fourni par Minecraft).
  * Lit aussi l'ancien format ResourcefulConfig (.jsonc, couleurs "#RRGGBB") puis réécrit en .json.
  */
-abstract class HscConfig(path: String) : ConfigGroup() {
+abstract class HscConfig(path: String, dir: Path = FabricLoader.getInstance().configDir) : ConfigGroup() {
     private val logger = LoggerFactory.getLogger("simplechat")
     private val gson = GsonBuilder().setPrettyPrinting().create()
-    private val file = FabricLoader.getInstance().configDir.resolve("$path.json")
-    private val legacyFile = FabricLoader.getInstance().configDir.resolve("$path.jsonc")
+    private val file = dir.resolve("$path.json")
+    private val legacyFile = dir.resolve("$path.jsonc")
+    private val tmpFile = dir.resolve("$path.json.tmp")
 
     val categories = LinkedHashMap<String, HscCategory>()
 
@@ -110,7 +114,12 @@ abstract class HscConfig(path: String) : ConfigGroup() {
                 readGroup(cat, obj)
             }
             migrate(root)
-        }.onFailure { logger.warn("Invalid config file {}, keeping defaults: {}", source.fileName, it.message) }
+        }.onFailure {
+            logger.warn("Invalid config file {}, keeping defaults: {}", source.fileName, it.message)
+            // Le save qui suit écrit les défauts par-dessus : on garde une copie, sinon la config
+            // du joueur disparaît sans trace sur un simple fichier tronqué.
+            runCatching { Files.copy(source, source.resolveSibling("${source.fileName}.bak"), REPLACE) }
+        }
         save() // normalise (migration jsonc → json, nouvelles options)
     }
 
@@ -144,7 +153,11 @@ abstract class HscConfig(path: String) : ConfigGroup() {
         }
         runCatching {
             Files.createDirectories(file.parent)
-            Files.writeString(file, gson.toJson(root))
+            // Écriture en deux temps : un jeu tué pendant le write laisserait un JSON tronqué,
+            // illisible au lancement suivant — toute la config repartirait aux défauts.
+            Files.writeString(tmpFile, gson.toJson(root))
+            runCatching { Files.move(tmpFile, file, REPLACE, StandardCopyOption.ATOMIC_MOVE) }
+                .onFailure { Files.move(tmpFile, file, REPLACE) }
         }.onFailure { logger.error("Failed to save config", it) }
     }
 

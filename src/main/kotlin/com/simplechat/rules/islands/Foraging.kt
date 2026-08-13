@@ -195,8 +195,10 @@ object Foraging {
         // Après HONEY_TREE : la forme précise gagne. Ancrée en tête pour ne pas ramasser les
         // annonces à préfixe (« HOPPITY'S HUNT … has appeared! »), qui ont leur propre réglage.
         rules(APPEARED) {
+            // Deux formes chez Hypixel : « A X has appeared! » et « - A wild X appeared! »
+            // (chasse), cette dernière encadrée de tirets comme l'entrée du safari.
             rule("mob-appeared", RuleAction.COMPACT,
-                "^An? (.+?) has appeared!",
+                "^-*\\s*An? (?:wild )?(.+?) (?:has )?appeared!",
                 compact = { "${Fmt.rawSpan(it.raw, it[1])} appeared" },
                 sample = "§eA §cWoodlouse §ehas appeared!")
         } +

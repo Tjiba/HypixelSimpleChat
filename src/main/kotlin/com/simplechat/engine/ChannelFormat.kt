@@ -86,7 +86,7 @@ object ChannelFormat {
             out.add(Seg("]", BRACKET)); out.add(Seg(" ", null))
         }
         if (emblem != null && !cfg.prefix.hideEmblem) { out.addAll(rawColored(raw, emblem)); out.add(Seg(" ", null)) }
-        out.addAll(rankNameSegs(raw, nameHead, cfg.publicStyle))
+        out.addAll(rankNameSegs(raw, nameHead, cfg.publicStyle, cfg.self))
         out.add(Seg(": ", DIM))
         out.addAll(messageSegs(rawMessageSlice(raw, rest.substring(0, sep + 2), msg), cfg.publicStyle))
         return out
@@ -104,7 +104,7 @@ object ChannelFormat {
         val out = ArrayList<Seg>()
         out.add(Seg(cfg.partyPrefix, cfg.partyStyle.prefixColor))
         out.add(Seg(" > ", DIM))
-        out.addAll(rankNameSegs(raw, nameHead, cfg.partyStyle))
+        out.addAll(rankNameSegs(raw, nameHead, cfg.partyStyle, cfg.self))
         out.add(Seg(" : ", DIM))
         out.addAll(messageSegs(rawMessageSlice(raw, rest.substring(0, sep + 2), msg), cfg.partyStyle))
         return out
@@ -132,7 +132,7 @@ object ChannelFormat {
 
         // Message guilde normal : comme public/party, rank + nom en couleur du rank.
         if (!cfg.bridge.formatAllGuild) return null
-        return channelBody(prefix, prefixColor, cfg.guildStyle, raw, head.group(1))
+        return channelBody(prefix, prefixColor, cfg.guildStyle, raw, head.group(1), cfg.self)
     }
 
     // Formatage d'un relais bridge Discord : "prefix > alias/version > name : message".
@@ -169,8 +169,8 @@ object ChannelFormat {
         val voaColor = versionOrAliasColor(versionOrAlias, useVersion, cfg)
 
         // Pseudo avec rank ([MVP+] …) -> logique rank ; sinon pseudo Discord -> couleur bridge custom.
-        val nameSegs = if (discord.contains("] ")) rankNameSegs(raw, discord, cfg.guildStyle)
-        else listOf(Seg(discord, cfg.bridge.bridgeNameColor))
+        val nameSegs = if (discord.contains("] ")) rankNameSegs(raw, discord, cfg.guildStyle, cfg.self)
+        else listOf(Seg(discord, selfColorOf(discord, cfg.self) ?: cfg.bridge.bridgeNameColor))
 
         return listOf(Seg(prefix, prefixColor), Seg(" > ", DIM),
             Seg(versionOrAlias, voaColor), Seg(" > ", DIM)) +
@@ -180,7 +180,8 @@ object ChannelFormat {
     }
 
     // Formate "[rank] Name: message" (couleurs rank gardées) préfixé du canal.
-    private fun channelBody(prefix: String, prefixColor: Int, style: ChannelStyle, raw: String, cleanRest: String): List<Seg>? {
+    private fun channelBody(prefix: String, prefixColor: Int, style: ChannelStyle, raw: String, cleanRest: String,
+                            self: SelfPlayer?): List<Seg>? {
         val sep = cleanRest.indexOf(": ")
         if (sep < 0) return null
         val nameHead = cleanRest.substring(0, sep) // "[rank] Name" (texte nettoyé)
@@ -188,7 +189,7 @@ object ChannelFormat {
         val out = ArrayList<Seg>()
         out.add(Seg(prefix, prefixColor))
         out.add(Seg(" > ", DIM))
-        out.addAll(rankNameSegs(raw, nameHead, style))
+        out.addAll(rankNameSegs(raw, nameHead, style, self))
         out.add(Seg(" : ", DIM))
         out.addAll(messageSegs(rawMessageSlice(raw, cleanRest.substring(0, sep + 2), msg), style))
         return out
@@ -203,7 +204,7 @@ object ChannelFormat {
     }
 
     // Rank Hypixel + nom (couleur du rank) + rank de guilde. Chaque partie togglable ; couleurs d'origine gardées.
-    private fun rankNameSegs(raw: String, nameHead: String, style: ChannelStyle): List<Seg> {
+    private fun rankNameSegs(raw: String, nameHead: String, style: ChannelStyle, self: SelfPlayer?): List<Seg> {
         // 1. Détacher un éventuel rank de guilde en suffixe " [xxx]" (marche même sans rank Hypixel).
         val gm = GUILD_RANK_SUFFIX.find(nameHead)
         val core = gm?.groupValues?.get(1) ?: nameHead   // "[MVP+] Name" ou "Name"
@@ -214,23 +215,22 @@ object ChannelFormat {
         val coreSlice = if (coreStart < 0) core else coloredSlice(raw, coreStart, core.length)
         // Couleur du rank = couleur du NOM lui-même (dernier fragment coloré), pas des crochets §8.
         val rankColor = LegacyText.parse(coreSlice).lastOrNull { it.color != null }?.color ?: BRACKET
-        val nameColor = if (style.recolorName) style.nameColor else rankColor
 
         // 3. Rank Hypixel [MVP+] optionnel en tête de core.
         val out = ArrayList<Seg>()
         val rankEnd = core.indexOf("] ")
-        if (rankEnd >= 0) {
+        // Son propre pseudo passe avant recolorName : le repère ne sert à rien s'il porte la
+        // couleur de tout le monde.
+        val name = if (rankEnd >= 0) core.substring(rankEnd + 2) else core
+        val nameColor = selfColorOf(name, self)
+            ?: if (style.recolorName) style.nameColor else rankColor
+        if (rankEnd >= 0 && style.showRank) {
             val rankTxt = core.substring(0, rankEnd + 1)
-            val nameTxt = core.substring(rankEnd + 2)
-            if (style.showRank) {
-                val rankSlice = if (coreStart < 0) rankTxt else coloredSlice(raw, coreStart, rankTxt.length)
-                out.addAll(LegacyText.parse(rankSlice))
-                out.add(Seg(" ", DIM))
-            }
-            out.add(Seg(nameTxt, nameColor))
-        } else {
-            out.add(Seg(core, nameColor))
+            val rankSlice = if (coreStart < 0) rankTxt else coloredSlice(raw, coreStart, rankTxt.length)
+            out.addAll(LegacyText.parse(rankSlice))
+            out.add(Seg(" ", DIM))
         }
+        out.add(Seg(name, nameColor))
 
         // 4. Rank de guilde en suffixe (couleur d'origine).
         if (style.showGuildRank && guildTag.isNotEmpty()) {
@@ -239,6 +239,10 @@ object ChannelFormat {
         }
         return out
     }
+
+    /** Couleur de surlignage si [name] est le pseudo du joueur, sinon null. */
+    private fun selfColorOf(name: String, self: SelfPlayer?): Int? =
+        self?.highlightColor?.takeIf { name.equals(self.name, ignoreCase = true) }
 
     // Segments d'un fragment nettoyé en gardant ses couleurs d'origine dans raw.
     private fun rawColored(raw: String, clean: String): List<Seg> {

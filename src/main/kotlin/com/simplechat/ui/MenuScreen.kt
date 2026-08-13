@@ -265,7 +265,13 @@ class MenuScreen(private val parent: Screen?) : Screen(
         refresh()
     }
 
-    private fun onValueChanged() { presetChoice = null; rebuildPreview() }
+    // Écrit dès le clic : un jeu tué avec le menu ouvert ne doit pas emporter le réglage.
+    // Le drag du picker attend le relâchement, sinon c'est un write par frame.
+    private fun onValueChanged() {
+        presetChoice = null
+        rebuildPreview()
+        if (pickerDrag == 0) Settings.save()
+    }
 
     // --- rendu ---
     override fun extractRenderState(gfx: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, delta: Float) {
@@ -425,7 +431,6 @@ class MenuScreen(private val parent: Screen?) : Screen(
     private fun applyPreset(recommended: Boolean) {
         if (recommended) { if (!Settings.applyRecommended()) Settings.resetToDefaults() }
         else Settings.resetToDefaults()
-        Settings.save()
         onValueChanged()
         presetChoice = if (recommended) "Recommended" else "Default" // après onValueChanged (qui l'efface)
     }
@@ -694,7 +699,7 @@ class MenuScreen(private val parent: Screen?) : Screen(
     }
 
     override fun mouseReleased(event: MouseButtonEvent): Boolean {
-        pickerDrag = 0
+        if (pickerDrag != 0) { pickerDrag = 0; Settings.save() }
         return super.mouseReleased(event)
     }
 
@@ -754,8 +759,13 @@ class MenuScreen(private val parent: Screen?) : Screen(
     }
 
     override fun onClose() {
-        Settings.save()
         Screens.set(Minecraft.getInstance(), parent)
+    }
+
+    // MC n'appelle onClose() que sur une fermeture volontaire. Un écran remplacé (déconnexion,
+    // autre mod, fin de partie) passe par removed() : sans ça les réglages restent en RAM.
+    override fun removed() {
+        Settings.save()
     }
 
     private fun topTabRects(): List<Rect> {
@@ -831,7 +841,7 @@ class MenuScreen(private val parent: Screen?) : Screen(
         // Sections d'une catégorie SANS onglets (header par section ; titre vide = pas de header).
         private val FLAT_SECTIONS: Map<String?, LinkedHashMap<String, List<String>>> = mapOf(
             null to linkedMapOf(
-                "" to listOf("masterEnabled", "groupingWindowSeconds", "smartCollapse", "updateNotifications", "maxMessages", "showTimestamps", "timestampColor", "compactTheme", "compactThemeColor"),
+                "" to listOf("masterEnabled", "groupingWindowSeconds", "smartCollapse", "updateNotifications", "maxMessages", "showTimestamps", "timestampColor", "highlightSelf", "selfColor", "compactTheme", "compactThemeColor"),
                 "CHAT TABS" to listOf("chatTabs", "tabFilterMode"),
             ),
         )

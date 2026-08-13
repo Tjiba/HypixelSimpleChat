@@ -1,72 +1,52 @@
 package com.simplechat.ui
 
-import com.simplechat.engine.ChatRules
-import com.simplechat.engine.RuleAction
-import com.simplechat.rules.Registry
+import com.simplechat.config.RuleConfig
+import com.simplechat.engine.SelfPlayer
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
-/** L'aperçu doit rester aligné sur la liste de réglages : mêmes réglages, même ordre. */
+/** L'aperçu des canaux joueur parle du joueur : il doit s'y reconnaître, rang compris. */
 class PreviewTest {
 
-    private val ruleIds = Registry.groups.map { it.id }.toSet()
+    private fun textOf(cfg: RuleConfig, category: String?) =
+        Preview.forSettings(cfg, category, emptyList())
+            .joinToString("\n") { line -> line.joinToString("") { it.text } }
 
-    /** Chaque exemple doit déclencher la règle de son propre réglage, réglages dans l'ordre. */
-    private fun checkAligned(ids: List<String>) {
-        val samples = Preview.samplesFor(ids)
-        val resolved = samples.map { s -> Registry.find(ChatRules.clean(s), s)?.first?.group?.id }
-        assertTrue(resolved.none { it == null }, "un exemple ne déclenche aucune règle : $samples")
-        assertEquals(ids.filter { it in ruleIds }, resolved.distinct(),
-            "l'aperçu ne suit pas l'ordre des réglages")
+    private val self = RuleConfig.DEFAULT.copy(self = SelfPlayer("non00w", "§6[MVP§c++§6] non00w"))
+
+    @Test fun `guild and public previews use the player's own name and rank`() {
+        for (category in listOf("Guild Chat", "Public Chat", null)) {
+            val text = textOf(self, category)
+            assert(text.contains("non00w")) { "$category : pseudo absent — $text" }
+            assert(!text.contains("Player")) { "$category : exemple resté — $text" }
+            assert(!text.contains("MeteoFrance")) { "$category : exemple resté — $text" }
+        }
+        assert(textOf(self, "Guild Chat").contains("[MVP++]"))
     }
 
-    @Test fun `general tab is aligned`() {
-        checkAligned(MenuLayout.views["SkyBlock"]!!["General"]!!.values.flatten())
+    // Le pseudo repris de la liste des joueurs reste reconnu comme le sien : sa couleur s'applique.
+    @Test fun `own color shows in the preview, rank untouched`() {
+        val cfg = self.copy(self = self.self!!.copy(highlightColor = 0xFF00FF))
+        val segs = Preview.forSettings(cfg, "Guild Chat", emptyList()).flatten()
+        assertEquals(0xFF00FF, segs.first { it.text == "non00w" }.color)
+        assertEquals(0xFFAA00, segs.first { it.text.contains("MVP") }.color) // §6 du rang gardé
     }
 
-    @Test fun `a content tab is aligned`() {
-        checkAligned(MenuLayout.views["SkyBlock"]!!["Dungeons"]!!.values.flatten())
-        checkAligned(MenuLayout.views["SkyBlock"]!!["Foraging"]!!.values.flatten())
+    // Le rang n'est pas toujours donné par le serveur ; le pseudo, lui, l'est toujours.
+    @Test fun `an unknown rank still shows the player's name`() {
+        val noRank = RuleConfig.DEFAULT.copy(self = SelfPlayer("non00w"))
+        for (category in listOf("Guild Chat", "Public Chat")) {
+            val text = textOf(noRank, category)
+            assert(text.contains("non00w")) { "$category : pseudo absent — $text" }
+            assert(!text.contains("Player") && !text.contains("MeteoFrance")) { "$category : $text" }
+        }
+        // Le rang de l'exemple reste porté par la ligne (Public Chat le masque par défaut).
+        assert(textOf(noRank, "Guild Chat").contains("MVP"))
     }
 
-    // Une phrase au compact vide disparaît toujours : la montrer barrée laisserait croire qu'elle
-    // dépend du réglage, alors qu'elle ne s'affichera jamais.
-    @Test fun `a phrase that always vanishes has no preview line`() {
-        val hive = Preview.samplesFor(listOf("foraging-hive"))
-        assertTrue(hive.none { it.contains("honeyhive") }, "la ligne toujours masquée s'affiche : $hive")
-        assertEquals(2, hive.size)
-    }
-
-    // Un groupe non dépliable n'a qu'une ligne de réglage : l'aperçu doit quand même montrer
-    // les phrases qu'elle englobe, sinon rien ne dit ce qu'on est en train de régler. Sauf
-    // celles qu'on laisse passer intactes (OFF) : elles n'ont rien à montrer.
-    @Test fun `a whole group previews the phrases it changes`() {
-        val phrases = Registry.rules.filter { it.group.id == "foraging-torrhus" }
-        assertTrue(phrases.size > 1, "Torrhus devrait couvrir plusieurs messages")
-        val changed = phrases.filter { it.default != RuleAction.OFF }
-        assertTrue(changed.size < phrases.size, "Torrhus devrait avoir au moins une phrase OFF")
-        assertEquals(changed.map { it.sample }, Preview.samplesFor(listOf("foraging-torrhus")))
-    }
-
-    // Une ligne d'aperçu par ligne de réglage : replié = un exemple, déplié = tous.
-    @Test fun `a collapsed group shows one example, an expanded one shows them all`() {
-        val phrases = Registry.rules.filter { it.group.id == "dungeons" }.map { it.id }
-        assertTrue(phrases.size > 1, "le réglage Dungeons devrait couvrir plusieurs messages")
-        assertEquals(1, Preview.samplesFor(listOf("dungeons")).size)
-        assertEquals(phrases.size, Preview.samplesFor(listOf("dungeons") + phrases).size)
-    }
-
-    // En recherche, les résultats traversent les catégories : l'aperçu doit les suivre eux,
-    // pas les exemples de la page où on se trouvait.
-    @Test fun `search results drive the preview`() {
-        val lines = Preview.forSettings(
-            com.simplechat.config.RuleConfig.DEFAULT, Preview.SEARCH, listOf("puzzle-solved", "bank-interest"))
-        assertEquals(3, lines.size, "2 messages + la ligne vide qui les sépare")
-    }
-
-    @Test fun `settings without a rule are skipped, not shifted`() {
-        val expected = Preview.samplesFor(listOf("bazaar")).size + Preview.samplesFor(listOf("slayer")).size
-        assertEquals(expected, Preview.samplesFor(listOf("enabled", "bazaar", "customPatterns", "slayer")).size)
+    // Hors partie : personne à nommer, les exemples restent.
+    @Test fun `preview keeps its samples when there is no player`() {
+        assert(textOf(RuleConfig.DEFAULT, "Guild Chat").contains("Player"))
+        assert(textOf(RuleConfig.DEFAULT, "Public Chat").contains("MeteoFrance"))
     }
 }

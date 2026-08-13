@@ -16,6 +16,16 @@ data class ChannelStyle(
     val recolorMessage: Boolean,   // false = garder les couleurs d'origine du message
 )
 
+/**
+ * Le joueur local. [display] = son pseudo avec son rang tel qu'Hypixel l'écrit ("§6[MVP§c++§6] Foo"),
+ * vide s'il n'est pas connu ; [highlightColor] null = ne pas repérer son nom dans le chat.
+ */
+data class SelfPlayer(
+    val name: String,
+    val display: String = "",
+    val highlightColor: Int? = null,
+)
+
 /** Toggles indépendants du préfixe public (style SkyHanni). */
 data class PublicPrefixToggles(
     val hideLevel: Boolean,

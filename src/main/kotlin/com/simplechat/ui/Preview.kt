@@ -5,6 +5,7 @@ import com.simplechat.engine.ChatRules
 import com.simplechat.engine.LegacyText
 import com.simplechat.engine.RuleAction
 import com.simplechat.engine.Seg
+import com.simplechat.engine.SelfPlayer
 import com.simplechat.engine.Verdict
 import com.simplechat.rules.Registry
 import com.simplechat.rules.Rule
@@ -16,18 +17,28 @@ import com.simplechat.rules.Rule
 object Preview {
 
     // Canaux joueur : pas de règles derrière, seulement du formatage — exemples écrits à la main.
-    private val GUILD = listOf(
+    // La ligne qui parle du joueur porte son propre pseudo : il se reconnaît dans l'aperçu.
+    private fun guild(self: SelfPlayer?) = listOf(
         "Guild > BotName: G > DiscordUser: hey from discord",
         "Guild > [MVP++] BotName: [V1] DiscordUser: gg wp",
-        "Guild > §b[MVP§c+§b] Player §7[Member]§f: hey all",
+        "Guild > ${who(self, "§b[MVP§c+§b] ", "Player")} §7[Member]§f: hey all",
         "Officer > §6[MVP§1++§6] Officer §e[Staff]§f: on it",
     )
     private val PARTY = listOf(
         "Party > §b[MVP§c+§b] Friend§8: §ron my way",
     )
-    private val PUBLIC = listOf(
-        "§8[§d330§8] §6⛃ §8[§6MVP§1++§8] §6MeteoFrance§8:§r selling stuff",
+    private fun public(self: SelfPlayer?) = listOf(
+        "§8[§d330§8] §6⛃ ${who(self, "§8[§6MVP§1++§8] §6", "MeteoFrance")}§8:§r selling stuff",
     )
+
+    /**
+     * Le joueur avec son rang Hypixel. Si le serveur ne le donne pas, son pseudo garde quand même
+     * sa place sur le rang de l'exemple — c'est lui qu'il vient chercher dans l'aperçu, pas le rang.
+     */
+    private fun who(self: SelfPlayer?, sampleRank: String, sampleName: String): String {
+        val player = self ?: return sampleRank + sampleName
+        return player.display.ifEmpty { sampleRank + player.name }
+    }
 
     /** Catégorie factice : force l'aperçu à suivre les réglages passés, pas une page de canal. */
     const val SEARCH = "search"
@@ -115,10 +126,11 @@ object Preview {
      */
     fun forSettings(cfg: RuleConfig, categoryId: String?, ids: List<String>, limit: Int = 30): List<List<Seg>> {
         val blocks = when (categoryId) {
-            "Guild Chat" -> listOf(GUILD)
+            "Guild Chat" -> listOf(guild(cfg.self))
             "Party Chat" -> listOf(PARTY)
-            "Public Chat" -> listOf(PUBLIC)
-            null -> listOf(PUBLIC, PARTY, GUILD) // page racine : réglages globaux, les 3 canaux
+            "Public Chat" -> listOf(public(cfg.self))
+            // page racine : réglages globaux, les 3 canaux
+            null -> listOf(public(cfg.self), PARTY, guild(cfg.self))
             else -> capped(blocksFor(ids), limit)
         }
         val ts = if (cfg.showTimestamps) Seg("[${java.time.LocalTime.now().format(TS_FMT)}] ", cfg.timestampColor) else null

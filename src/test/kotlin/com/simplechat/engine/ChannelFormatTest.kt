@@ -109,4 +109,30 @@ class ChannelFormatTest {
         assertEquals(null, segs.last().color) // recolor off
         assert(segs.any { it.text.contains("Foo") })
     }
+
+    private val self = cfg.copy(self = SelfPlayer("non00w", highlightColor = 0xFFAA00))
+
+    @Test fun `own name is highlighted in guild party and public`() {
+        val cases = listOf(
+            "Guild > §b[MVP§c+§b] non00w§f: gg" to Channel.GUILD,
+            "Party > §b[MVP§c+§b] non00w§f: go" to Channel.PARTY,
+            "§b[MVP§c+§b] non00w§f: hi" to Channel.PUBLIC,
+        )
+        for ((raw, channel) in cases) {
+            val segs = ChannelFormat.format(raw, channel, self)!!
+            assertEquals(0xFFAA00, segs.first { it.text == "non00w" }.color, raw)
+        }
+    }
+
+    @Test fun `other players keep their rank color`() {
+        val segs = ChannelFormat.format("Guild > §b[MVP§c+§b] Foo§f: gg", Channel.GUILD, self)!!
+        assertEquals(0x55FFFF, segs.first { it.text == "Foo" }.color)
+    }
+
+    // Le repère ne sert à rien s'il porte la couleur de tout le monde.
+    @Test fun `own name wins over recolorName`() {
+        val c = self.copy(guildStyle = self.guildStyle.copy(recolorName = true, nameColor = 0xFFFFFF))
+        val segs = ChannelFormat.format("Guild > §b[MVP§c+§b] non00w§f: gg", Channel.GUILD, c)!!
+        assertEquals(0xFFAA00, segs.first { it.text == "non00w" }.color)
+    }
 }

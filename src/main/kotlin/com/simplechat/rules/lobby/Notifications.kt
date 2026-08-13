@@ -18,6 +18,10 @@ object Notifications {
             compact = { "§aTipped §f${it[1]} §7(${it[2]} games)" },
             sample = "§aYou tipped 12 players in 4 games!",
             title = "Players tipped")
+        rule("tipped-nobody", RuleAction.HIDE,
+            "^You already tipped everyone that has boosters active",
+            sample = "§cYou already tipped everyone that has boosters active, so there isn't anybody to be tipped right now!",
+            title = "Nobody left to tip")
         rule("plasmaflux-removed", RuleAction.HIDE,
             "Your previous Plasmaflux Power Orb was removed!",
             sample = "§cYour previous Plasmaflux Power Orb was removed!",

@@ -166,7 +166,7 @@ public abstract class ChatHudMixin implements IHscChat {
         if (HSC_REENTRANT.get() || original == null) return;
 
         RuleConfig cfg = RuleConfig.Companion.current();
-        String legacy = hsc$toLegacy(original);
+        String legacy = com.simplechat.ComponentLegacy.of(original);
         // Avertissement Discord greffé par Hypixel : toujours retiré, sans toggle.
         String stripped = ChatRules.INSTANCE.stripDiscordWarning(legacy);
         boolean warned = !stripped.equals(legacy);
@@ -347,34 +347,6 @@ public abstract class ChatHudMixin implements IHscChat {
             }
             return java.util.Optional.empty();
         }, net.minecraft.network.chat.Style.EMPTY).isPresent();
-    }
-
-    /** Convertit le Component (dont les couleurs peuvent être dans le Style, pas en §) en chaîne legacy §. */
-    private static String hsc$toLegacy(Component c) {
-        StringBuilder sb = new StringBuilder();
-        c.visit((style, text) -> {
-            hsc$appendStyle(sb, style);
-            sb.append(text);
-            return java.util.Optional.empty();
-        }, net.minecraft.network.chat.Style.EMPTY);
-        return sb.toString();
-    }
-
-    private static void hsc$appendStyle(StringBuilder sb, net.minecraft.network.chat.Style style) {
-        sb.append("§r");
-        net.minecraft.network.chat.TextColor col = style.getColor();
-        if (col != null) {
-            int rgb = col.getValue() & 0xFFFFFF;
-            Character code = LegacyText.INSTANCE.codeFor(rgb);
-            // Hors palette vanilla : en §#RRGGBB, sinon la couleur d'Hypixel serait perdue ici.
-            if (code != null) sb.append('§').append(code.charValue());
-            else sb.append(String.format("§#%06X", rgb));
-        }
-        if (style.isBold()) sb.append("§l");
-        if (style.isItalic()) sb.append("§o");
-        if (style.isUnderlined()) sb.append("§n");
-        if (style.isStrikethrough()) sb.append("§m");
-        if (style.isObfuscated()) sb.append("§k");
     }
 
     private static final java.time.format.DateTimeFormatter TS_FMT =

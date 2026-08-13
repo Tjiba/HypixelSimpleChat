@@ -33,6 +33,12 @@ class CompactsTest {
             ChatRules.evaluate("§eAchievement Unlocked: Bedwars Banker", c))
     }
 
+    @Test fun `nothing left to tip is hidden`() {
+        val c = RuleConfig.DEFAULT.copy(actions = mapOf("tipped-nobody" to RuleAction.HIDE))
+        assertEquals(Verdict.Hide, ChatRules.evaluate(
+            "§cYou already tipped everyone that has boosters active, so there isn't anybody to be tipped right now!", c))
+    }
+
     @Test fun `dungeons compacted`() {
         val c = cfg("dungeons")
         assertEquals(Verdict.Replace("§a+ §5Wither Key"),
@@ -105,6 +111,14 @@ class CompactsTest {
         // Quantité, nom et « Shards » gardent chacun leur couleur.
         assertEquals(Verdict.Replace("§fx2 Honeybuzz §aShards"),
             ChatRules.evaluate("§aYou caught §fx2 Honeybuzz §aShards!", RuleConfig.DEFAULT))
+    }
+
+    // Les deux tournures d'apparition, dont celle de la chasse encadrée de tirets.
+    @Test fun `appeared mobs compacted in both wordings`() {
+        assertEquals(Verdict.Replace("§cWoodlouse appeared"),
+            ChatRules.evaluate("§eA §cWoodlouse §ehas appeared!", RuleConfig.DEFAULT))
+        assertEquals(Verdict.Replace("§6Groundhog appeared"),
+            ChatRules.evaluate("§f- A wild §6Groundhog §fappeared!", RuleConfig.DEFAULT))
     }
 
     // Un seul réglage pour tous les mobs de chasse : le nom et sa couleur viennent du brut.

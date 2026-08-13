@@ -1,10 +1,12 @@
 package com.simplechat.config
 
+import com.simplechat.LocalPlayer
 import com.simplechat.SimpleChatMod
 import com.simplechat.engine.ChannelStyle
 import com.simplechat.engine.GuildBridgeConfig
 import com.simplechat.engine.PublicPrefixToggles
 import com.simplechat.engine.RuleAction
+import com.simplechat.engine.SelfPlayer
 import com.simplechat.rules.Registry
 
 /** Vue immuable de la config, passée au moteur. Construite depuis Settings au runtime, ou à la main en test. */
@@ -25,6 +27,8 @@ data class RuleConfig(
     val prefix: PublicPrefixToggles,
     val bridge: GuildBridgeConfig,
     val customHidePatterns: List<String>,
+    /** null = compte inconnu (hors partie, ou en test). */
+    val self: SelfPlayer? = null,
     val showTimestamps: Boolean,
     val timestampColor: Int,
     val compactSoloClass: Boolean,
@@ -81,6 +85,14 @@ data class RuleConfig(
             compactHoppity = true,
         )
 
+        /** Le compte connecté, ou null hors partie : l'aperçu retombe alors sur ses exemples. */
+        private fun selfPlayer(): SelfPlayer? {
+            val name = LocalPlayer.name()
+            if (name.isEmpty()) return null
+            return SelfPlayer(name, LocalPlayer.display(),
+                (Settings.selfColor and RGB).takeIf { Settings.highlightSelf })
+        }
+
         /** Projette la config Resourceful Config vers le snapshot pur. */
         private fun build(): RuleConfig = RuleConfig(
             masterEnabled = Settings.masterEnabled,
@@ -103,8 +115,9 @@ data class RuleConfig(
                 GuildChat.v1Color and RGB, GuildChat.v2Color and RGB, GuildChat.v3Color and RGB,
             ),
             customHidePatterns = SkyBlockCleanup.customPatterns.split(",").map { it.trim() }.filter { it.isNotEmpty() },
+            self = selfPlayer(),
             showTimestamps = Settings.showTimestamps,
-            timestampColor = Settings.timestampColor,
+            timestampColor = Settings.timestampColor and RGB,
             compactSoloClass = SkyBlockCleanup.soloClass,
             compactHoppity = SkyBlockCleanup.hoppity,
             compactTheme = Settings.compactTheme,

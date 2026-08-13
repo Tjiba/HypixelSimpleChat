@@ -33,6 +33,12 @@ object Settings : HscConfig("simplechat/config") {
     }
     var timestampColor by color(Color(0x555555).rgb) { name = "Timestamp color" }
 
+    var highlightSelf by boolean(false) {
+        name = "Highlight my name"
+        description = "Color your own name in chat — spot your messages at a glance"
+    }
+    var selfColor by color(Color(0xFFAA00).rgb) { name = "My name color" }
+
     var compactTheme by boolean(false) {
         name = "Compact color theme"
         description = "Recolor the white words of compact messages with your theme color — one consistent look"

@@ -6,6 +6,7 @@ import com.simplechat.ui.Screens
 import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback
 import net.fabricmc.fabric.api.client.command.v2.ClientCommands
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.screens.Screen
@@ -48,6 +49,9 @@ object SimpleChatMod : ClientModInitializer {
                 }
             }.onFailure { LOGGER.warn("Command aliases unavailable: {}", it.message) }
         }
+
+        // Quitter le jeu avec le menu ouvert : removed() ne passe pas, la config resterait en RAM.
+        ClientLifecycleEvents.CLIENT_STOPPING.register { Settings.save() }
 
         ClientTickEvents.END_CLIENT_TICK.register { client ->
             if (!pendingConfig) return@register
