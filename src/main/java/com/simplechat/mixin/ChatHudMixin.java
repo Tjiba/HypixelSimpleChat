@@ -175,6 +175,9 @@ public abstract class ChatHudMixin implements IHscChat {
         if (v == null) v = com.simplechat.HoppityCompact.INSTANCE.process(clean, cfg.getCompactHoppity());
         if (v == null) v = ChatRules.INSTANCE.evaluate(legacy, cfg);
 
+        // Compté avant le masquage : un gift caché doit quand même entrer dans le total.
+        String giftTotals = hsc$treeGiftTotals(clean, legacy, original);
+
         if (v instanceof Verdict.Hide) { ci.cancel(); return; }
 
         // #2 : préserver les items/entités linkés -> ne pas reformater un message joueur qui en contient.
@@ -220,7 +223,7 @@ public abstract class ChatHudMixin implements IHscChat {
         // ClickEvent et HoverEvent non. Le détail (XP gagnée, contenu d'un gift) reste à portée.
         if (v instanceof Verdict.Replace || v instanceof Verdict.Compact) {
             if (hsc$hasActionClick(original)) base = hsc$withClickables(base, original);
-            base = hsc$withHover(base, original);
+            base = hsc$withHover(base, original, giftTotals);
         }
         boolean untouched = v instanceof Verdict.Pass && !warned;
         hsc$display(base, key, untouched, system, cfg, signature, source, tag, ci);
@@ -317,14 +320,33 @@ public abstract class ChatHudMixin implements IHscChat {
         return out;
     }
 
-    /** Reporte le survol du message d'origine sur la ligne compacte, si elle n'en a pas déjà un. */
-    private static Component hsc$withHover(Component compact, Component original) {
+    /** Reporte le survol du message d'origine sur la ligne compacte, si elle n'en a pas déjà un.
+     *  [totals] — totaux de session d'un Tree Gift — prend la place du détail d'Hypixel : le gain
+     *  d'un seul gift est déjà résumé par la ligne, le survol ne sert qu'au cumul. */
+    private static Component hsc$withHover(Component compact, Component original, String totals) {
         if (compact.getStyle().getHoverEvent() != null) return compact;
-        net.minecraft.network.chat.HoverEvent hover = original.<net.minecraft.network.chat.HoverEvent>visit(
+        net.minecraft.network.chat.HoverEvent hover = hsc$hoverOf(original);
+        if (hover == null) return compact;
+        if (totals != null) hover = new net.minecraft.network.chat.HoverEvent.ShowText(build(totals));
+        final net.minecraft.network.chat.HoverEvent h = hover;
+        return Component.empty().append(compact).withStyle(s -> s.withHoverEvent(h));
+    }
+
+    /** Premier survol porté par un style du message, ou null. */
+    private static net.minecraft.network.chat.HoverEvent hsc$hoverOf(Component c) {
+        return c.<net.minecraft.network.chat.HoverEvent>visit(
                 (style, text) -> java.util.Optional.ofNullable(style.getHoverEvent()),
                 net.minecraft.network.chat.Style.EMPTY).orElse(null);
-        if (hover == null) return compact;
-        return Component.empty().append(compact).withStyle(s -> s.withHoverEvent(hover));
+    }
+
+    /** Totaux de session du Tree Gift porté par [clean], ou null. Les quantités gagnées ne sont
+     *  écrites que dans le survol d'Hypixel : c'est la seule source à cumuler. */
+    private static String hsc$treeGiftTotals(String clean, String legacy, Component original) {
+        String tree = com.simplechat.TreeGiftTotals.INSTANCE.tree(clean);
+        if (tree == null) return null;
+        if (!(hsc$hoverOf(original) instanceof net.minecraft.network.chat.HoverEvent.ShowText text)) return null;
+        return com.simplechat.TreeGiftTotals.INSTANCE.record(
+                tree, legacy, com.simplechat.ComponentLegacy.of(text.value()));
     }
 
     private static boolean hsc$hasActionClick(Component c) {

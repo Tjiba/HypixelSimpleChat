@@ -20,6 +20,8 @@ object Foraging {
         tab = "Foraging")
     val WOODPECKER = Group("foraging-woodpecker", "Woodpecker", Category.SKYBLOCK, "GENERAL", RuleAction.COMPACT,
         tab = "Foraging")
+    val TIMBER = Group("foraging-timber", "Timber", Category.SKYBLOCK, "GENERAL", RuleAction.COMPACT,
+        tab = "Foraging")
     val HONEY_TREE = Group("foraging-honey-tree", "Honey tree", Category.SKYBLOCK, "HUNTING", RuleAction.COMPACT,
         description = "A mob comes out of a honey tree",
         tab = "Foraging")
@@ -103,6 +105,12 @@ object Foraging {
                 compact = { "${Fmt.rawColor(it.raw, "WOODPECKER!", "§a")}§lWOODPECKER!" },
                 sample = "§#3BE63B§lWOODPECKER! §r§fYou felled the entire §#3BE63BTree§f!")
         } +
+        rules(TIMBER) {
+            rule("timber", RuleAction.COMPACT,
+                "^TIMBER! You felled the entire Tree!",
+                compact = { "${Fmt.rawColor(it.raw, "TIMBER!", "§b")}§lTIMBER!" },
+                sample = "§#3BE6E6§lTIMBER! §r§fYou felled the entire §#3BE6E6Tree§f!")
+        } +
         rules(TORRHUS) {
             // Déclarée avant Combat dans le registre : le générique "… DOWN!" des boss l'avalerait.
             rule("beeheemoth-down", RuleAction.OFF,
@@ -130,6 +138,14 @@ object Foraging {
                 },
                 sample = "§dBEEHEEMOTH! §fThe §dBeeheemoth §fis getting more fatigued!",
                 title = "Beeheemoth progress")
+            // L'autre fin possible : le mob part sans être descendu.
+            rule("beeheemoth-left", RuleAction.COMPACT,
+                "^BEEHEEMOTH! The Beeheemoth got bored and flew away!",
+                compact = {
+                    "${Fmt.rawColor(it.raw, "BEEHEEMOTH!", "§d")}§lBEEHEEMOTH! §7flew away"
+                },
+                sample = "§dBEEHEEMOTH! §fThe §dBeeheemoth §fgot bored and flew away!",
+                title = "Beeheemoth left")
         } +
         rules(HIVE) {
             // La ligne d'attente ne dit rien : ce qui compte arrive juste après. Compact vide pour

@@ -29,6 +29,16 @@ class CollapseTest {
         assertNull(Collapse.seen("d-never-seen"))
     }
 
+    // Le même cadre encadre tous les pavés d'annonce : le replier arrache la barre du haut
+    // d'un pavé rare pour poser un "(x2)" sur celle du bas.
+    @Test fun `decoration bars are never counted`() {
+        val bar = "========================="
+        Collapse.remember(bar, bar, 1)
+        Collapse.remember("▬▬▬▬▬▬▬▬▬▬▬▬", "▬▬▬▬▬▬▬▬▬▬▬▬", 1)
+        assertNull(Collapse.seen(bar))
+        assertNull(Collapse.seen("▬▬▬▬▬▬▬▬▬▬▬▬"))
+    }
+
     // Les séparateurs vides d'Hypixel : les compter afficherait un "(x13)" tout seul sur une ligne.
     @Test fun `blank lines are never counted`() {
         Collapse.remember("", "", 1)

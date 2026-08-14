@@ -43,7 +43,7 @@ object Registry {
         Economy.SACKS, Economy.LOOT_SHARE, Economy.GEXP, Economy.RARE_REWARD,
         Server.PROFILE_ID, Server.ROUTING,
         Transitions.TRANSITIONS, Notifications.NOTIFICATIONS, Dungeons.DUNGEONS,
-        Foraging.TREE_GIFT, Foraging.FLOOR_DROP, Foraging.PETALFALL, Foraging.WOODPECKER,
+        Foraging.TREE_GIFT, Foraging.FLOOR_DROP, Foraging.PETALFALL, Foraging.WOODPECKER, Foraging.TIMBER,
         Foraging.TORRHUS, Foraging.HIVE,
         Foraging.APPEARED, Foraging.SHARDS, Foraging.HUNTING, Foraging.HONEY_TREE,
         Foraging.SAFARI_ENTRY, Foraging.SAFARI_CAPTURE, Foraging.SAFARI_MANAGER, Foraging.SAFARI_SUMMARY,

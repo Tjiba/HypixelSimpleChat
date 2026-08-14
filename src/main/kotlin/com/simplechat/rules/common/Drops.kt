@@ -2,6 +2,7 @@ package com.simplechat.rules.common
 
 import com.simplechat.engine.RuleAction
 import com.simplechat.rules.Category
+import com.simplechat.rules.Fmt
 import com.simplechat.rules.Group
 import com.simplechat.rules.rules
 
@@ -21,7 +22,7 @@ object Drops {
     val skyblockXp = rules(SKYBLOCK_XP) {
         rule("skyblock-xp", RuleAction.COMPACT,
             "^\\+([\\d,.]+) SkyBlock XP(?: \\((.+?)\\))?(?: \\([\\d,]+/[\\d,]+\\))?$",
-            compact = { "§b+${it[1]} SB XP" + if (it[2].isEmpty()) "" else " §7(${it[2]})" },
+            compact = { Fmt.indent(it.raw) + "§b+${it[1]} SB XP" + if (it[2].isEmpty()) "" else " §7(${it[2]})" },
             sample = "§b+2 SkyBlock XP §7(Bag Upgrades) §8(69/100)")
     }
 

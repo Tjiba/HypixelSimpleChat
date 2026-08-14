@@ -29,6 +29,18 @@ object SimpleChatMod : ClientModInitializer {
                     .then(ClientCommands.literal("update").executes {
                         Updater.checkManually(it.source.client); 1
                     })
+                    .then(ClientCommands.literal("treegift")
+                        .then(ClientCommands.literal("reset").executes { ctx ->
+                            TreeGiftTotals.reset()
+                            ctx.source.client.player?.sendSystemMessage(
+                                Component.literal("§6[§bSimple§fChat§6] §7Tree gift totals cleared"))
+                            1
+                        })
+                        .executes { ctx ->
+                            val player = ctx.source.client.player
+                            for (line in TreeGiftTotals.report()) player?.sendSystemMessage(Component.literal(line))
+                            1
+                        })
                     .then(ClientCommands.literal("debug").executes { ctx ->
                         Debug.enabled = !Debug.enabled
                         val state = if (Debug.enabled) "§aon" else "§coff"

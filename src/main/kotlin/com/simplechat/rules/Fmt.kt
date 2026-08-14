@@ -29,6 +29,10 @@ object Fmt {
     /** Retire l'étiquette "[NPC] " de tête : le dialogue garde son nom et ses couleurs. */
     fun stripNpc(raw: String) = raw.replaceFirst(Regex("\\[NPC]\\s*"), "")
 
+    /** Le décalage d'origine de la ligne, que clean() aplatit : à remettre devant un compact pour
+     *  qu'il garde sa place dans le pavé d'Hypixel plutôt que de se coller au bord du chat. */
+    fun indent(raw: String) = raw.replace(Regex(LegacyText.CODE), "").takeWhile { it == ' ' }
+
     /**
      * Couleur qui teinte [marker] dans le message brut, [fallback] à défaut. Le gras et compagnie
      * sont tolérés entre les deux, pas une autre couleur : c'est la plus proche qui gagne.

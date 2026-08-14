@@ -221,6 +221,10 @@ class ChatRulesTest {
             ChatRules.evaluate("§b+2 SkyBlock XP §7(Bag Upgrades) §8(69/100)", cfg))
         assertEquals(Verdict.Replace("§b+1,250 SB XP"),
             ChatRules.evaluate("§b+1,250 SkyBlock XP", cfg))
+        // Dans un pavé (montée de niveau, HOTF), Hypixel décale la ligne : le raccourci garde le
+        // décalage, sinon il se colle au bord du chat alors que le reste du pavé est en retrait.
+        assertEquals(Verdict.Replace("    §b+180 SB XP"),
+            ChatRules.evaluate("§b    +180 SkyBlock XP", cfg))
         // Un pavé de fin de collection contient un gain d'XP sans en être un : le remplacer
         // effacerait le palier, la recette et les autres récompenses.
         assertEquals(Verdict.Pass, ChatRules.evaluate(
