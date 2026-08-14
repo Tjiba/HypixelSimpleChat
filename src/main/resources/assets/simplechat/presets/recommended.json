@@ -68,6 +68,7 @@
   "SkyBlock": {
     "enabled": true,
     "petSummon": "COMPACT",
+    "autopet": "COMPACT",
     "abiphoneRing": "COMPACT",
     "npcDialog": "COMPACT",
     "boss": "COMPACT",

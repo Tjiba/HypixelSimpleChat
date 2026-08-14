@@ -38,7 +38,7 @@ object Registry {
         Rewards.MYSTERY, Rewards.CLAIMED,
         Morphs.MORPH,
         Npc.NPC_DIALOG, Npc.ABIPHONE,
-        Pets.PET_SPAWN, Pets.PET_SUMMON,
+        Pets.PET_SPAWN, Pets.PET_SUMMON, Pets.AUTOPET,
         Combat.BOSS, Combat.DAMAGE, Combat.KILL_COMBO, Combat.MOB_ABILITY,
         Economy.SACKS, Economy.LOOT_SHARE, Economy.GEXP, Economy.RARE_REWARD,
         Server.PROFILE_ID, Server.ROUTING,

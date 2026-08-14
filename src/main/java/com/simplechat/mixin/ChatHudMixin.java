@@ -179,7 +179,7 @@ public abstract class ChatHudMixin implements IHscChat {
         if (v == null) v = com.simplechat.HoppityCompact.INSTANCE.process(clean, cfg.getCompactHoppity());
         if (v == null) v = ChatRules.INSTANCE.evaluate(legacy, cfg);
         // Après les règles : c'est leur verdict qui dit si le joueur veut voir ses ordres Bazaar.
-        Verdict batch = com.simplechat.BazaarSummary.INSTANCE.process(clean, legacy, v);
+        Verdict batch = com.simplechat.BazaarSummary.INSTANCE.process(clean, legacy, v, cfg);
         if (batch != null) v = batch;
 
         // Compté avant le masquage : un gift caché doit quand même entrer dans le total.

@@ -196,6 +196,15 @@ object SkyBlockCleanup : HscCategory("SkyBlock") {
         description = "Merge 'You found X' + 'New/Duplicate Rabbit!' into one short line"
     }
 
+    var bazaarItemsColor by color(Color(0xFFAA00).rgb) {
+        name = "Bazaar batch — items"
+        description = "Color of the item count when several orders are merged into one line"
+    }
+    var bazaarSalesColor by color(Color(0x00AAAA).rgb) {
+        name = "Bazaar batch — orders"
+        description = "Color of the sale/buy count on that same line"
+    }
+
     var customPatterns by string("") {
         name = "Custom hidden messages"
         description = "Comma-separated text — any message containing one of these is hidden"

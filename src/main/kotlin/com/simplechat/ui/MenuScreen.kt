@@ -6,6 +6,7 @@ import com.simplechat.config.ConfigGroup
 import com.simplechat.config.EntryKind
 import com.simplechat.config.RuleConfig
 import com.simplechat.config.Settings
+import com.simplechat.engine.LegacyText
 import com.simplechat.engine.RuleAction
 import com.simplechat.engine.SegRender
 import net.minecraft.client.Minecraft
@@ -36,7 +37,9 @@ class MenuScreen(private val parent: Screen?) : Screen(
     private var dropdownConstants: List<Enum<*>> = emptyList()
     private var focused: Setting? = null
     private var editBuffer = ""
-    private var previewLines: List<Component> = emptyList()
+    private var previewLines: List<Pair<Component, Component?>> = emptyList()
+    // Survols des lignes d'aperçu, position notée au rendu : le tooltip passe après.
+    private val previewHovers = ArrayList<Pair<IntArray, Component>>()
     // Color picker HSV : ouvert au clic sur le carré de couleur.
     private var picker: Setting? = null
     private var ph = 0f
@@ -248,7 +251,7 @@ class MenuScreen(private val parent: Screen?) : Screen(
         // En recherche, l'aperçu montre les résultats trouvés, pas les exemples de la catégorie.
         val category = if (searchQuery.isEmpty()) currentCategory else Preview.SEARCH
         previewLines = Preview.forSettings(RuleConfig.current(), category, ids)
-            .map { SegRender.toComponent(it) }
+            .map { SegRender.toComponent(it.segs) to it.hover?.let { h -> SegRender.toComponent(LegacyText.parse(h)) } }
     }
 
     private fun select(id: String?) {
@@ -443,10 +446,13 @@ class MenuScreen(private val parent: Screen?) : Screen(
         gfx.text(font, Component.literal("§8§lPREVIEW"), x1 + 8, top + 7, MenuTheme.TEXT_FAINT)
         var y = top + 21
         val w = x2 - x1 - 16
-        for (line in previewLines) {
+        previewHovers.clear()
+        for ((line, hover) in previewLines) {
             if (y > bot) break
             gfx.textWithWordWrap(font, line, x1 + 8, y, w, MenuTheme.TEXT)
-            y += font.wordWrapHeight(line, w) + 4
+            val h = font.wordWrapHeight(line, w)
+            if (hover != null) previewHovers.add(intArrayOf(x1 + 8, y, x1 + 8 + font.width(line), y + h) to hover)
+            y += h + 4
         }
         gfx.disableScissor()
     }
@@ -667,15 +673,22 @@ class MenuScreen(private val parent: Screen?) : Screen(
         gfx.text(font, Component.literal("§7" + hex(row.entry.getInt() and 0xFFFFFF)), sqX, sqY + sq + 3, MenuTheme.TEXT)
     }
 
-    /** Tooltip : description de la ligne survolée (masqué si un popup est ouvert). */
+    /** Tooltip : description de la ligne survolée, ou le survol que porte une ligne d'aperçu
+     *  (masqué si un popup est ouvert). */
     private fun renderTooltip(gfx: GuiGraphicsExtractor, mx: Int, my: Int) {
         if (openDropdown != null || picker != null) return
+        val preview = previewHovers.firstOrNull { (r, _) -> inRect(mx, my, r[0], r[1], r[2], r[3]) }
+        if (preview != null) { tip(gfx, mx, my, preview.second, 220); return }
         if (!inRect(mx, my, mainX1(), listTop(), settingsX2(), regionBottom())) return
         var hovered: Setting? = null
         eachItem { item, top, h -> if (item is Setting && my >= top && my < top + h) hovered = item }
         val desc = hovered?.desc?.takeIf { it.isNotEmpty() } ?: return
-        val text = Component.literal(desc)
-        val w = minOf(font.width(desc), 200)
+        tip(gfx, mx, my, Component.literal(desc), 200)
+    }
+
+    /** Bulle sous le curseur, rabattue dans la fenêtre quand elle déborde. */
+    private fun tip(gfx: GuiGraphicsExtractor, mx: Int, my: Int, text: Component, maxW: Int) {
+        val w = minOf(font.width(text), maxW)
         val h = font.wordWrapHeight(text, w)
         var x = mx + 10
         var y = my + 12

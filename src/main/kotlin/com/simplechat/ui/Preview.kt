@@ -1,5 +1,6 @@
 package com.simplechat.ui
 
+import com.simplechat.BazaarSummary
 import com.simplechat.config.RuleConfig
 import com.simplechat.engine.ChatRules
 import com.simplechat.engine.LegacyText
@@ -73,13 +74,6 @@ object Preview {
     private val ruleIdsByGroup: Map<String, List<String>> =
         Registry.byGroup.entries.associate { (group, rules) -> group.id to rules.map { it.id } }
 
-    /**
-     * Exemples des réglages [ids], dans leur ordre d'affichage. Un réglage de phrase donne sa
-     * ligne ; un réglage de groupe donne toutes les siennes, sauf si ses phrases sont listées
-     * juste après — ce sont elles qui portent l'aperçu. Un réglage sans règle est sauté.
-     */
-    internal fun samplesFor(ids: List<String>): List<String> = blocksFor(ids).flatten()
-
     private val ownerByRule: Map<String, String> = Registry.rules.associate { it.id to it.group.id }
 
     /**
@@ -104,18 +98,24 @@ object Preview {
      * Un bloc par réglage affiché : les phrases d'un même groupe déplié forment un seul bloc,
      * un groupe replié n'en montre qu'un exemple. Une ligne d'aperçu par ligne de réglage.
      */
-    private fun blocksFor(ids: List<String>): List<List<String>> {
+    private fun blocksFor(ids: List<String>, batch: Line? = null): List<List<Msg>> {
         val listed = ids.toSet()
-        val blocks = ArrayList<List<String>>()
+        val blocks = ArrayList<List<Msg>>()
         var phrases = ArrayList<String>()
         var owner: String? = null
 
         fun flush() {
-            if (phrases.isNotEmpty()) blocks.add(phrases)
+            if (phrases.isNotEmpty()) blocks.add(msgs(phrases))
             phrases = ArrayList(); owner = null
         }
 
         for (id in ids) {
+            // Le lot Bazaar n'a pas de règle : c'est son réglage de couleur qui porte son aperçu.
+            if (id == BazaarSummary.SETTING && batch != null) {
+                flush()
+                blocks.add(listOf(Msg.Ready(batch)))
+                continue
+            }
             val sample = sampleByRule[id]
             if (sample != null) {
                 if (ownerByRule[id] != owner) { flush(); owner = ownerByRule[id] }
@@ -125,22 +125,38 @@ object Preview {
             flush()
             val ruleIds = ruleIdsByGroup[id] ?: continue
             // Groupe déplié : ce sont ses phrases qui parlent, pas lui.
-            if (ruleIds.none { it in listed }) blocks.add(
+            if (ruleIds.none { it in listed }) blocks.add(msgs(
                 wholePhrases[id]?.takeIf { it.isNotEmpty() }
-                    ?: listOf(sampleByRule.getValue(ruleIds.first())))
+                    ?: listOf(sampleByRule.getValue(ruleIds.first()))))
         }
         flush()
         return blocks
     }
 
+    /** Une ligne d'aperçu : ses segments, et le survol qu'elle porte en jeu (null = aucun). */
+    data class Line(val segs: List<Seg>, val hover: String? = null)
+
+    /** Ce qu'un réglage met dans l'aperçu : une phrase à passer aux règles, ou une ligne déjà
+     *  faite pour ce qui n'en a pas — le lot Bazaar. Le rendu attend le rognage. */
+    private sealed class Msg {
+        class Sample(val raw: String) : Msg()
+        class Ready(val line: Line) : Msg()
+    }
+
+    private fun msgs(raws: List<String>): List<Msg> = raws.map { Msg.Sample(it) }
+
+    /** Le lot Bazaar tel qu'il sortirait en jeu, survol compris : il ne passe par aucune règle. */
+    private fun bazaarBatch(cfg: RuleConfig): Line = BazaarSummary.preview(cfg)
+        .let { Line(LegacyText.parse(it.shortLegacy), it.hoverLegacy) }
+
     // Un message masqué est montré barré : l'aperçu sert justement à voir ce qui disparaît.
-    private fun render(cfg: RuleConfig, raw: String): List<Seg> =
+    private fun render(cfg: RuleConfig, raw: String): Line =
         when (val v = ChatRules.evaluate(raw, cfg)) {
-            is Verdict.Segments -> v.segs
-            is Verdict.Compact -> LegacyText.parse(v.shortLegacy)
-            is Verdict.Replace -> LegacyText.parse(v.legacy)
-            Verdict.Hide -> listOf(Seg(ChatRules.clean(raw), 0x555555, strikethrough = true))
-            Verdict.Pass -> LegacyText.parse(raw)
+            is Verdict.Segments -> Line(v.segs)
+            is Verdict.Compact -> Line(LegacyText.parse(v.shortLegacy), v.hoverLegacy)
+            is Verdict.Replace -> Line(LegacyText.parse(v.legacy))
+            Verdict.Hide -> Line(listOf(Seg(ChatRules.clean(raw), 0x555555, strikethrough = true)))
+            Verdict.Pass -> Line(LegacyText.parse(raw))
         }
 
     private val TS_FMT = java.time.format.DateTimeFormatter.ofPattern("HH:mm")
@@ -149,32 +165,35 @@ object Preview {
      * Lignes rendues pour la page affichée : [ids] = les réglages listés à partir du premier
      * visible, dans l'ordre. [limit] borne le travail, l'aperçu est de toute façon rogné.
      */
-    fun forSettings(cfg: RuleConfig, categoryId: String?, ids: List<String>, limit: Int = 30): List<List<Seg>> {
+    fun forSettings(cfg: RuleConfig, categoryId: String?, ids: List<String>, limit: Int = 30): List<Line> {
         val blocks = when (categoryId) {
-            "Guild Chat" -> listOf(guild(cfg.self))
-            "Party Chat" -> listOf(PARTY)
-            "Public Chat" -> listOf(public(cfg.self))
+            "Guild Chat" -> listOf(msgs(guild(cfg.self)))
+            "Party Chat" -> listOf(msgs(PARTY))
+            "Public Chat" -> listOf(msgs(public(cfg.self)))
             // page racine : réglages globaux, les 3 canaux
-            null -> listOf(public(cfg.self), PARTY, guild(cfg.self))
-            else -> capped(blocksFor(ids), limit)
+            null -> listOf(msgs(public(cfg.self)), msgs(PARTY), msgs(guild(cfg.self)))
+            else -> capped(blocksFor(ids, bazaarBatch(cfg)), limit)
         }
         val ts = if (cfg.showTimestamps) Seg("[${java.time.LocalTime.now().format(TS_FMT)}] ", cfg.timestampColor) else null
 
         // Ligne vide entre deux blocs : on voit d'un coup d'œil à quel réglage chaque ligne appartient.
-        val lines = ArrayList<List<Seg>>()
+        val lines = ArrayList<Line>()
         for (block in blocks) {
-            if (lines.isNotEmpty()) lines.add(emptyList())
-            for (raw in block) {
-                val segs = render(cfg, raw)
-                lines.add(if (ts == null) segs else listOf(ts) + segs)
+            if (lines.isNotEmpty()) lines.add(Line(emptyList()))
+            for (msg in block) {
+                val line = when (msg) {
+                    is Msg.Sample -> render(cfg, msg.raw)
+                    is Msg.Ready -> msg.line
+                }
+                lines.add(if (ts == null) line else line.copy(segs = listOf(ts) + line.segs))
             }
         }
         return lines
     }
 
     /** Coupe à [limit] messages au total, sans casser un bloc en cours. */
-    private fun capped(blocks: List<List<String>>, limit: Int): List<List<String>> {
-        val kept = ArrayList<List<String>>()
+    private fun capped(blocks: List<List<Msg>>, limit: Int): List<List<Msg>> {
+        val kept = ArrayList<List<Msg>>()
         var count = 0
         for (block in blocks) {
             if (count >= limit) break

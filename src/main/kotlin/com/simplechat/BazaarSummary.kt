@@ -1,5 +1,6 @@
 package com.simplechat
 
+import com.simplechat.config.RuleConfig
 import com.simplechat.engine.LegacyText
 import com.simplechat.engine.Verdict
 import com.simplechat.rules.Fmt
@@ -24,6 +25,9 @@ object BazaarSummary {
     /** Au-delà, le survol déborderait de l'écran : le reste est compté sur une dernière ligne. */
     private const val MAX_HOVER = 20
 
+    /** Id du premier réglage de couleur : le lot n'a pas de règle, c'est lui qui porte son aperçu. */
+    const val SETTING = "bazaarItemsColor"
+
     private class Item(val label: String, var qty: Long, var coins: Long)
 
     private class Order(val name: String, val label: String, val qty: Long, val coins: Long, val sell: Boolean)
@@ -39,7 +43,7 @@ object BazaarSummary {
 
     /** Ligne du lot, ou null si le message n'est pas un ordre affiché. [verdict] = ce que les règles
      *  en ont fait : masqué ou laissé tel quel, le joueur ne veut pas de nos totaux. */
-    fun process(clean: String, raw: String, verdict: Verdict): Verdict? {
+    fun process(clean: String, raw: String, verdict: Verdict, cfg: RuleConfig): Verdict? {
         pending = false
         val order = parse(clean, raw) ?: return null
         if (verdict !is Verdict.Replace) {
@@ -64,7 +68,17 @@ object BazaarSummary {
         // Premier ordre du lot : sa ligne détaillée dit déjà tout, on la laisse passer.
         if (orders == 1) return null
         stale = shown
-        return Verdict.Compact(line(), hover())
+        return Verdict.Compact(line(batch, orders, sell, grey, cfg), hover(batch, sell))
+    }
+
+    /** Lot d'exemple pour l'aperçu du menu : le vrai lot en cours n'est pas touché. */
+    fun preview(cfg: RuleConfig): Verdict.Compact {
+        val sample = linkedMapOf(
+            "Whale Bait" to Item("§aWhale Bait", 92, 1_500_000),
+            "Shark Fin" to Item("§9Shark Fin", 2_815, 464_200),
+            "Chum" to Item("§fChum", 193, 38),
+        )
+        return Verdict.Compact(line(sample, 3, true, false, cfg), hover(sample, true))
     }
 
     /** Ligne du lot à retirer du chat avant d'afficher la nouvelle, une seule fois. */
@@ -105,26 +119,28 @@ object BazaarSummary {
         return Order(name, Fmt.rawColor(raw, name) + name, n, c, sell)
     }
 
-    private fun line(): String {
-        val items = batch.values.sumOf { it.qty }
+    private fun line(items: Map<String, Item>, orders: Int, sell: Boolean, grey: Boolean, cfg: RuleConfig): String {
+        val count = items.values.sumOf { it.qty }
         val head = if (sell) "§6BZ §c-" else "§6BZ §a+"
         val kind = if (sell) "sale" else "buy"
-        val full = "$head §f${group(items)} item${plural(items)} §8· §f$orders $kind${plural(orders.toLong())} " +
-            "§7· ${sign()}${Fmt.shortNum(total().toString())}"
+        val full = "$head ${hex(cfg.bazaarItemsColor)}${group(count)} item${plural(count)} " +
+            "§8· ${hex(cfg.bazaarSalesColor)}$orders $kind${plural(orders.toLong())} " +
+            "§7· ${sign(sell)}${Fmt.shortNum(items.values.sumOf { it.coins }.toString())}"
         return if (grey) "§8" + full.replace(Regex(LegacyText.CODE), "") else full
     }
 
-    private fun hover(): String {
-        val lines = batch.values.take(MAX_HOVER).map {
-            "§f${group(it.qty)}x ${it.label} §8· ${sign()}${Fmt.shortNum(it.coins.toString())}"
+    private fun hex(rgb: Int) = "§#%06X".format(rgb and 0xFFFFFF)
+
+    /** Le plus gros gain en tête : c'est ce qu'on vient chercher dans le détail. */
+    private fun hover(items: Map<String, Item>, sell: Boolean): String {
+        val lines = items.values.sortedByDescending { it.coins }.take(MAX_HOVER).map {
+            "§f${group(it.qty)}x ${it.label} §8· ${sign(sell)}${Fmt.shortNum(it.coins.toString())}"
         }
-        val rest = batch.size - lines.size
+        val rest = items.size - lines.size
         return (if (rest > 0) lines + "§8… and $rest more" else lines).joinToString("\n")
     }
 
-    private fun total() = batch.values.sumOf { it.coins }
-
-    private fun sign() = if (sell) "§a+" else "§c-"
+    private fun sign(sell: Boolean) = if (sell) "§a+" else "§c-"
 
     private fun group(n: Long) = String.format(java.util.Locale.ROOT, "%,d", n)
 

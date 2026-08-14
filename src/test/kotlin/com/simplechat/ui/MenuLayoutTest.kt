@@ -41,6 +41,7 @@ class MenuLayoutTest {
         val general = skyblock["General"]!!
         assertEquals(listOf("enabled", "customPatterns"), general["GENERAL"]!!.take(2))
         assertTrue("hoppity" in general["WORLD & EVENTS"]!!)
+        assertEquals(listOf("bazaarItemsColor", "bazaarSalesColor"), general["ECONOMY"]!!.take(2))
     }
 
     @Test fun `each phrase sits right under its group`() {

@@ -19,6 +19,7 @@ object MenuLayout {
     private val EXTRAS = mapOf(
         "GENERAL" to listOf("enabled", "customPatterns"),
         "WORLD & EVENTS" to listOf("hoppity"),
+        "ECONOMY" to listOf("bazaarItemsColor", "bazaarSalesColor"),
         "Dungeons" to listOf("soloClass"),
         "Lobby" to listOf("enabled"),
         "System" to listOf("enabled"),

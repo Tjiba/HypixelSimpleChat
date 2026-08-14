@@ -19,13 +19,24 @@ class BazaarTest {
     }
 
     @Test fun `compacted`() {
-        assertEquals(Verdict.Replace("§6BZ §7· selling…"),
-            ChatRules.evaluate("§6[Bazaar] §7Submitting sell offer...", compact))
         // Quantité et item ont chacun leur couleur chez Hypixel : le compact les garde telles quelles.
         assertEquals(Verdict.Replace("§6BZ §a✔ §a64x §fEnchanted Cobblestone"),
             ChatRules.evaluate("§6Buy Order Setup! §a64x §fEnchanted Cobblestone", compact))
-        assertEquals(Verdict.Replace("§6AH §7· setup…"),
-            ChatRules.evaluate("§7Setting up the auction...", compact))
+    }
+
+    // Les lignes d'attente ne disent rien : elles partent même quand le groupe est en COMPACT.
+    @Test fun `the in-progress lines never show`() {
+        for (raw in listOf(
+            "§6[Bazaar] §7Submitting sell offer...",
+            "§6[Bazaar] §7Submitting buy order...",
+            "§6[Bazaar] §7Executing instant buy...",
+            "§6[Bazaar] §7Executing instant sell...",
+            "§6[Bazaar] §7Claiming order...",
+            "§7Putting item in escrow...",
+            "§7Setting up the auction...",
+        )) {
+            assertEquals(Verdict.Hide, ChatRules.evaluate(raw, compact), raw)
+        }
     }
 
     // Lignes réelles d'achat/vente instantané : elles n'étaient couvertes par aucune règle.

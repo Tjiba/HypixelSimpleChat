@@ -1,5 +1,6 @@
 package com.simplechat
 
+import com.simplechat.config.RuleConfig
 import com.simplechat.engine.ChatRules
 import com.simplechat.engine.Verdict
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -19,7 +20,7 @@ class BazaarSummaryTest {
     @BeforeEach fun clear() = BazaarSummary.reset()
 
     private fun order(raw: String, verdict: Verdict = shown) =
-        BazaarSummary.process(ChatRules.clean(raw), raw, verdict)
+        BazaarSummary.process(ChatRules.clean(raw), raw, verdict, RuleConfig.DEFAULT)
 
     @Test fun `the first order keeps its own line`() {
         assertNull(order(whaleBait))
@@ -30,7 +31,7 @@ class BazaarSummaryTest {
         BazaarSummary.displayed("BZ - 92x Whale Bait · +1.5M")
         assertEquals(
             Verdict.Compact(
-                "§6BZ §c- §f97 items §8· §f2 sales §7· §a+2.0M",
+                "§6BZ §c- §#FFAA0097 items §8· §#00AAAA2 sales §7· §a+2.0M",
                 "§f92x §aWhale Bait §8· §a+1.5M\n§f5x §aEnchanted Lily Pad §8· §a+500.0k"),
             order(lilyPad))
         assertEquals("BZ - 92x Whale Bait · +1.5M", BazaarSummary.stale())
@@ -42,7 +43,8 @@ class BazaarSummaryTest {
         assertNull(order(whaleBait))
         BazaarSummary.displayed("BZ - 92x Whale Bait · +1.5M")
         assertEquals(
-            Verdict.Compact("§6BZ §c- §f184 items §8· §f2 sales §7· §a+3.0M", "§f184x §aWhale Bait §8· §a+3.0M"),
+            Verdict.Compact("§6BZ §c- §#FFAA00184 items §8· §#00AAAA2 sales §7· §a+3.0M",
+                "§f184x §aWhale Bait §8· §a+3.0M"),
             order(whaleBait))
     }
 
@@ -53,7 +55,8 @@ class BazaarSummaryTest {
         assertNull(order(rawCod))
         BazaarSummary.displayed("BZ + 64x Raw Cod · -20.4k")
         assertEquals(
-            Verdict.Compact("§6BZ §a+ §f128 items §8· §f2 buys §7· §c-40.8k", "§f128x §fRaw Cod §8· §c-40.8k"),
+            Verdict.Compact("§6BZ §a+ §#FFAA00128 items §8· §#00AAAA2 buys §7· §c-40.8k",
+                "§f128x §fRaw Cod §8· §c-40.8k"),
             order(rawCod))
     }
 
@@ -74,6 +77,23 @@ class BazaarSummaryTest {
                 "§8BZ - 97 items · 2 sales · +2.0M",
                 "§f92x §aWhale Bait §8· §a+1.5M\n§f5x §aEnchanted Lily Pad §8· §a+500.0k"),
             order(lilyPad, grey))
+    }
+
+    // Le survol se lit par le gain : le plus gros ordre en tête, pas l'ordre d'arrivée.
+    @Test fun `the tooltip is sorted by price`() {
+        assertNull(order(lilyPad))
+        BazaarSummary.displayed("BZ - 5x Enchanted Lily Pad · +500.0k")
+        val v = order(whaleBait) as Verdict.Compact
+        assertEquals("§f92x §aWhale Bait §8· §a+1.5M\n§f5x §aEnchanted Lily Pad §8· §a+500.0k", v.hoverLegacy)
+    }
+
+    // Chaque compteur suit son réglage : ni l'item ni le total n'y touchent.
+    @Test fun `each count follows its configured color`() {
+        val cfg = RuleConfig.DEFAULT.copy(bazaarItemsColor = 0xFF5555, bazaarSalesColor = 0x55FF55)
+        assertNull(BazaarSummary.process(ChatRules.clean(whaleBait), whaleBait, shown, cfg))
+        BazaarSummary.displayed("BZ - 92x Whale Bait · +1.5M")
+        val v = BazaarSummary.process(ChatRules.clean(lilyPad), lilyPad, shown, cfg) as Verdict.Compact
+        assertEquals("§6BZ §c- §#FF555597 items §8· §#55FF552 sales §7· §a+2.0M", v.shortLegacy)
     }
 
     @Test fun `other messages are left alone`() {

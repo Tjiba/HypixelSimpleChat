@@ -35,6 +35,8 @@ data class RuleConfig(
     val compactHoppity: Boolean,
     val compactTheme: Boolean = false,
     val compactThemeColor: Int = 0x55FFFF,
+    val bazaarItemsColor: Int = 0xFFAA00,
+    val bazaarSalesColor: Int = 0x00AAAA,
 ) {
     companion object {
         private const val RGB = 0xFFFFFF
@@ -122,6 +124,8 @@ data class RuleConfig(
             compactHoppity = SkyBlockCleanup.hoppity,
             compactTheme = Settings.compactTheme,
             compactThemeColor = Settings.compactThemeColor and 0xFFFFFF,
+            bazaarItemsColor = SkyBlockCleanup.bazaarItemsColor and RGB,
+            bazaarSalesColor = SkyBlockCleanup.bazaarSalesColor and RGB,
         )
     }
 }
