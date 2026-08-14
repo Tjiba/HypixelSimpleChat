@@ -46,12 +46,12 @@ object Bazaar {
             title = "Executing instant sell")
         rule("bazaar-bought", RuleAction.HIDE,
             "^\\[Bazaar] Bought ([\\d,]+)x (.+) for ([\\d,.]+) coins!",
-            compact = { "§6BZ §a+ ${Fmt.rawColor(it.raw, it[2])}${it[1]}x ${it[2]} §7· §c-${Fmt.shortNum(it[3])}" },
+            compact = { "§6BZ §a+ §f${it[1]}x ${Fmt.rawColor(it.raw, it[2])}${it[2]} §7· §c-${Fmt.shortNum(it[3])}" },
             sample = "§6[Bazaar] §fBought §a64x §fRaw Cod §ffor §620,422 coins§f!",
             title = "Instant buy filled")
         rule("bazaar-sold", RuleAction.HIDE,
             "^\\[Bazaar] Sold ([\\d,]+)x (.+) for ([\\d,.]+) coins!",
-            compact = { "§6BZ §c- ${Fmt.rawColor(it.raw, it[2])}${it[1]}x ${it[2]} §7· §a+${Fmt.shortNum(it[3])}" },
+            compact = { "§6BZ §c- §f${it[1]}x ${Fmt.rawColor(it.raw, it[2])}${it[2]} §7· §a+${Fmt.shortNum(it[3])}" },
             sample = "§6[Bazaar] §fSold §a399x §fRuby Veilshroom §ffor §6391,539 coins§f!",
             title = "Instant sell filled")
         rule("bazaar-claiming", RuleAction.HIDE,
@@ -61,7 +61,7 @@ object Bazaar {
             title = "Claiming an order")
         rule("bazaar-claimed", RuleAction.HIDE,
             "^\\[Bazaar] Claimed ([\\d,.]+) coins from selling ([\\d,]+)x (.+) at ",
-            compact = { "§6BZ §a+${Fmt.shortNum(it[1])} §7· ${Fmt.rawColor(it.raw, it[3])}${it[2]}x ${it[3]}" },
+            compact = { "§6BZ §a+${Fmt.shortNum(it[1])} §7· §f${it[2]}x ${Fmt.rawColor(it.raw, it[3])}${it[3]}" },
             sample = "§6[Bazaar] §fClaimed §61,387,133 coins §ffrom selling §a1x §fFuming Potato Book §fat §61,401,145 each§f!",
             title = "Order claimed")
         rule("auction-escrow", RuleAction.HIDE,

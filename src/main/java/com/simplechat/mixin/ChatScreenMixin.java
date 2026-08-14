@@ -3,6 +3,7 @@ package com.simplechat.mixin;
 import com.simplechat.HscChatAccess;
 import com.simplechat.IHscChat;
 import com.simplechat.config.Settings;
+import com.simplechat.engine.CustomHide;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -98,7 +99,10 @@ public class ChatScreenMixin {
             if (chat == null) return;
             GuiMessage msg = chat.hsc$messageAt(event.x(), event.y());
             if (msg == null) return;
-            Minecraft.getInstance().keyboardHandler.setClipboard(msg.content().getString());
+            // Hypixel laisse ses « § » dans le texte du composant : collés ailleurs ils ressortent
+            // en « 6lPET DROP! ». On copie ce qui est lisible, l'espacement d'origine gardé.
+            Minecraft.getInstance().keyboardHandler.setClipboard(
+                    CustomHide.INSTANCE.stripColors(msg.content().getString()));
             HscChatAccess.copyTime = System.currentTimeMillis();
             HscChatAccess.copyX = (int) event.x();
             HscChatAccess.copyY = (int) event.y();

@@ -32,6 +32,10 @@ public abstract class ChatHudMixin implements IHscChat {
 
     private static final ThreadLocal<Boolean> HSC_REENTRANT = ThreadLocal.withInitial(() -> false);
 
+    // Profondeur de recherche de la ligne d'un lot Bazaar : les ordres se suivent, quelques
+    // messages peuvent s'être glissés entre deux.
+    private static final int HSC_BATCH_DEPTH = 8;
+
     // Collapse global des répétitions : Collapse retient les lignes récentes, le mixin retrouve
     // celle qui revient dans l'historique et la ré-affiche avec (xN).
 
@@ -174,6 +178,9 @@ public abstract class ChatHudMixin implements IHscChat {
         Verdict v = com.simplechat.SafariSummary.INSTANCE.process(clean, cfg);
         if (v == null) v = com.simplechat.HoppityCompact.INSTANCE.process(clean, cfg.getCompactHoppity());
         if (v == null) v = ChatRules.INSTANCE.evaluate(legacy, cfg);
+        // Après les règles : c'est leur verdict qui dit si le joueur veut voir ses ordres Bazaar.
+        Verdict batch = com.simplechat.BazaarSummary.INSTANCE.process(clean, legacy, v);
+        if (batch != null) v = batch;
 
         // Compté avant le masquage : un gift caché doit quand même entrer dans le total.
         String giftTotals = hsc$treeGiftTotals(clean, legacy, original);
@@ -232,6 +239,11 @@ public abstract class ChatHudMixin implements IHscChat {
     /** Affiche [base] ; si la même ligne est déjà dans la fenêtre, la reprend en bas avec (xN). */
     private void hsc$display(Component base, String key, boolean untouched, boolean system, RuleConfig cfg,
                              MessageSignature sig, GuiMessageSource src, GuiMessageTag tag, CallbackInfo ci) {
+        // Lot Bazaar : sa ligne de total est retirée pour que la suivante prenne sa place, plutôt
+        // qu'une ligne de plus par ordre. Introuvable (chat vidé, historique plein) -> ajout normal.
+        String batched = com.simplechat.BazaarSummary.INSTANCE.stale();
+        if (batched != null) hsc$removeLine(batched, HSC_BATCH_DEPTH);
+
         Collapse.Seen seen = cfg.getGroupRepeats() ? Collapse.INSTANCE.seen(key) : null;
 
         // Le spam système est rattrapé même si d'autres lignes sont passées entre-temps. Le chat
@@ -242,6 +254,7 @@ public abstract class ChatHudMixin implements IHscChat {
             com.simplechat.Debug.logCollapsed(key, count);
             Component disp = withTimestamp(hsc$withCount(base, count), cfg);
             Collapse.INSTANCE.remember(key, disp.getString(), count);
+            com.simplechat.BazaarSummary.INSTANCE.displayed(disp.getString());
             reAdd(disp, sig, src, tag, ci);
             return;
         }
@@ -256,6 +269,7 @@ public abstract class ChatHudMixin implements IHscChat {
 
         Component disp = withTimestamp(base, cfg);
         Collapse.INSTANCE.remember(key, disp.getString(), 1);
+        com.simplechat.BazaarSummary.INSTANCE.displayed(disp.getString());
         com.simplechat.Debug.logRendered(disp.getString());
         reAdd(disp, sig, src, tag, ci);
     }

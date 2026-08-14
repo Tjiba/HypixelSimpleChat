@@ -29,12 +29,15 @@ class BazaarTest {
     }
 
     // Lignes réelles d'achat/vente instantané : elles n'étaient couvertes par aucune règle.
+    // La quantité garde sa couleur à elle, l'item la sienne — sans ça les deux se confondent.
     @Test fun `instant orders are compacted`() {
-        assertEquals(Verdict.Replace("§6BZ §a+ §f64x Raw Cod §7· §c-20.4k"),
+        assertEquals(Verdict.Replace("§6BZ §a+ §f64x §fRaw Cod §7· §c-20.4k"),
             ChatRules.evaluate("§6[Bazaar] §fBought §a64x §fRaw Cod §ffor §620,422 coins§f!", compact))
-        assertEquals(Verdict.Replace("§6BZ §c- §f399x Ruby Veilshroom §7· §a+391.5k"),
+        assertEquals(Verdict.Replace("§6BZ §c- §f399x §fRuby Veilshroom §7· §a+391.5k"),
             ChatRules.evaluate("§6[Bazaar] §fSold §a399x §fRuby Veilshroom §ffor §6391,539 coins§f!", compact))
-        assertEquals(Verdict.Replace("§6BZ §a+1.4M §7· §f1x Fuming Potato Book"),
+        assertEquals(Verdict.Replace("§6BZ §c- §f92x §aWhale Bait §7· §a+1.5M"),
+            ChatRules.evaluate("§6[Bazaar] §fSold §a92x §aWhale Bait §ffor §61,532,000 coins§f!", compact))
+        assertEquals(Verdict.Replace("§6BZ §a+1.4M §7· §f1x §fFuming Potato Book"),
             ChatRules.evaluate(
                 "§6[Bazaar] §fClaimed §61,387,133 coins §ffrom selling §a1x §fFuming Potato Book §fat §61,401,145 each§f!",
                 compact))
