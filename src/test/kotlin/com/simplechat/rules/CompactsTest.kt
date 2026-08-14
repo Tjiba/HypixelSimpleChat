@@ -121,9 +121,42 @@ class CompactsTest {
             ChatRules.evaluate("§f- A wild §6Groundhog §fappeared!", RuleConfig.DEFAULT))
     }
 
+    // Safari : le jet de capsule se répète à chaque essai et disparaît, la capture garde le
+    // critter, sa rareté et la quantité de shards quand il en tombe plusieurs.
+    @Test fun `safari captures compacted`() {
+        val c = cfg("foraging-safari-capture")
+        assertEquals(Verdict.Hide,
+            ChatRules.evaluate("§7You threw a §cCritter Capsule §7at the §9Nozzlenose§7!", c))
+        assertEquals(Verdict.Replace("§a§lCAPTURE! §r§fTepid"),
+            ChatRules.evaluate("§a§lCAPTURE! §7You caught a §fTepid§7 and gained a §fTepid Shard§7!", c))
+        assertEquals(Verdict.Replace("§a§lCAPTURE! §r§9Nozzlenose §7x2"),
+            ChatRules.evaluate("§a§lCAPTURE! §7You caught a §9Nozzlenose§7 and gained 2x §9Nozzlenose Shard§7!", c))
+    }
+
+    // Le dialogue du safari arrive étiqueté "[NPC] " : c'est son réglage à lui qui décide, pas
+    // celui des dialogues PNJ génériques, et l'étiquette ne survit pas au compact.
+    @Test fun `safari staff dialog keeps its own setting`() {
+        val raw = "§e[NPC] §aSafari Manager§f: §rWould you like to leave the Critter Safari?"
+        assertEquals(Verdict.Hide, ChatRules.evaluate(raw, RuleConfig.DEFAULT))
+        val grey = RuleConfig.DEFAULT.copy(
+            groupActions = mapOf("foraging-safari-manager" to RuleAction.COMPACT_GREY))
+        assertEquals(Verdict.Replace("§8Safari Manager: Would you like to leave the Critter Safari?"),
+            ChatRules.evaluate(raw, grey))
+    }
+
+    // L'oiseau attiré par la nourriture garde sa rareté ; Tim répète le mode d'emploi, il saute.
+    @Test fun `birdfeeder compacted`() {
+        assertEquals(Verdict.Replace("§aBluebird §7attracted"),
+            ChatRules.evaluate("§7A §aBluebird §7was attracted to the Birdfeeder!", RuleConfig.DEFAULT))
+        assertEquals(Verdict.Hide, ChatRules.evaluate(
+            "§eBirdwatcher Tim§f: §rDifferent birds seem to prefer different foods, though.", RuleConfig.DEFAULT))
+    }
+
     // Un seul réglage pour tous les mobs de chasse : le nom et sa couleur viennent du brut.
     @Test fun `escaped mobs compacted`() {
         val c = cfg("foraging-hunting")
+        assertEquals(Verdict.Replace("§9Nozzlenose §7escaped"),
+            ChatRules.evaluate("§7The §9Nozzlenose §7escaped your Critter Capsule!", c))
         assertEquals(Verdict.Replace("§dBeeheemoth escaped"),
             ChatRules.evaluate("§cYou looked away! §dBeeheemoth escaped§c!", c))
         assertEquals(Verdict.Replace("§aWoodlouse escaped"),

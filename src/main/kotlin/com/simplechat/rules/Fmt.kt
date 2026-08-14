@@ -26,6 +26,9 @@ object Fmt {
     /** Retire les articles de tête des sources ("The Mage's Magma", "Your fairy"). */
     fun src(s: String) = s.removePrefix("The ").removePrefix("Your ").trim()
 
+    /** Retire l'étiquette "[NPC] " de tête : le dialogue garde son nom et ses couleurs. */
+    fun stripNpc(raw: String) = raw.replaceFirst(Regex("\\[NPC]\\s*"), "")
+
     /**
      * Couleur qui teinte [marker] dans le message brut, [fallback] à défaut. Le gras et compagnie
      * sont tolérés entre les deux, pas une autre couleur : c'est la plus proche qui gagne.

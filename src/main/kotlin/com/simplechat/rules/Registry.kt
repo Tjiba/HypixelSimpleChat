@@ -46,7 +46,8 @@ object Registry {
         Foraging.TREE_GIFT, Foraging.FLOOR_DROP, Foraging.PETALFALL, Foraging.WOODPECKER,
         Foraging.TORRHUS, Foraging.HIVE,
         Foraging.APPEARED, Foraging.SHARDS, Foraging.HUNTING, Foraging.HONEY_TREE,
-        Foraging.SAFARI_ENTRY, Foraging.SAFARI_MANAGER, Foraging.SAFARI_SUMMARY,
+        Foraging.BIRDFEEDER,
+        Foraging.SAFARI_ENTRY, Foraging.SAFARI_CAPTURE, Foraging.SAFARI_MANAGER, Foraging.SAFARI_SUMMARY,
         Foraging.SAFARI_MILESTONES, Foraging.SAFARI_DISABLED,
         Abilities.ABILITIES, Combat.COMBAT_HEAL, Drops.SKYBLOCK_XP, Drops.REWARDS,
         Misc.MISC, Bazaar.BAZAAR, Slayer.SLAYER, Events.EVENTS, Warnings.WARNINGS,
@@ -57,9 +58,10 @@ object Registry {
         // Garde-fou : aucune règle ne doit avaler un gain d'XP SkyBlock.
         Drops.skyblockXp +
             Joins.rules + Boosters.rules + Rewards.rules + Morphs.rules +
-            Npc.rules + Pets.rules +
+            Pets.rules +
             // Avant Combat : son générique "… DOWN!" avalerait le "BEEHEEMOTH DOWN!" de Torrhus.
-            Foraging.rules + Combat.rules + Economy.rules + Server.rules +
+            // Avant Npc : ses PNJ nommés ont leur propre réglage, "[NPC] " générique les avalerait.
+            Foraging.rules + Npc.rules + Combat.rules + Economy.rules + Server.rules +
             // Groupes de spam : un réglage pour plusieurs messages.
             Transitions.rules + Notifications.rules + Dungeons.rules +
             Abilities.rules + Combat.spam + Drops.rules +

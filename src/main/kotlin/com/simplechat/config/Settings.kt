@@ -12,9 +12,9 @@ object Settings : HscConfig("simplechat/config") {
         name = "Enable mod"
         description = "Master switch — off leaves chat 100% untouched"
     }
-    var groupingWindowSeconds by int(3) {
-        name = "Grouping window (seconds)"
-        description = "Repeated messages within this delay are collapsed"
+    var groupRepeats by boolean(true) {
+        name = "Group repeats"
+        description = "Merge an identical message into its (xN) line — system spam even with other messages in between"
     }
     var smartCollapse by boolean(true) {
         name = "Smart collapse"
@@ -66,7 +66,12 @@ object Settings : HscConfig("simplechat/config") {
     override fun firstLaunch() { applyRecommended() }
 
     // Config d'avant les réglages par phrase : chaque phrase reprend la valeur de son groupe.
-    override fun migrate(root: JsonObject) { RuleSettings.migrate(root) }
+    override fun migrate(root: JsonObject) {
+        RuleSettings.migrate(root)
+        // Config d'avant le simple on/off : une fenêtre à 0 seconde valait « ne regroupe pas ».
+        val seconds = runCatching { root.get("groupingWindowSeconds")?.asInt }.getOrNull() ?: return
+        groupRepeats = seconds > 0
+    }
 
     init {
         category(GuildChat)

@@ -4,6 +4,7 @@ import com.simplechat.HscChatAccess;
 import com.simplechat.IHscChat;
 import com.simplechat.config.RuleConfig;
 import com.simplechat.engine.ChatRules;
+import com.simplechat.engine.Collapse;
 import com.simplechat.engine.LegacyText;
 import com.simplechat.engine.Seg;
 import com.simplechat.engine.Verdict;
@@ -31,11 +32,8 @@ public abstract class ChatHudMixin implements IHscChat {
 
     private static final ThreadLocal<Boolean> HSC_REENTRANT = ThreadLocal.withInitial(() -> false);
 
-    // Collapse global des répétitions : mémorise la dernière ligne affichée pour l'éditer avec (xN).
-    private static String HSC_LAST_KEY = null;
-    private static int HSC_LAST_COUNT = 0;
-    private static long HSC_LAST_TIME = 0L;
-    private static String HSC_LAST_RENDERED = null;
+    // Collapse global des répétitions : Collapse retient les lignes récentes, le mixin retrouve
+    // celle qui revient dans l'historique et la ré-affiche avec (xN).
 
     @Invoker("addMessage")
     abstract void hsc$invokeAddMessage(Component message, MessageSignature signature,
@@ -205,6 +203,7 @@ public abstract class ChatHudMixin implements IHscChat {
         // #3 : collapse intelligent (normalise les nombres) pour les messages système reformatés.
         boolean smart = cfg.getSmartCollapse() && (v instanceof Verdict.Replace);
         String key = smart ? ChatRules.INSTANCE.collapseKey(clean) : clean;
+        boolean system = ChatRules.INSTANCE.classify(clean) == com.simplechat.engine.Channel.SYSTEM;
         Component base;
         if (v instanceof Verdict.Segments sv) {
             base = buildSegs(sv.getSegs());
@@ -224,52 +223,55 @@ public abstract class ChatHudMixin implements IHscChat {
             base = hsc$withHover(base, original);
         }
         boolean untouched = v instanceof Verdict.Pass && !warned;
-        hsc$display(base, key, untouched, cfg, signature, source, tag, ci);
+        hsc$display(base, key, untouched, system, cfg, signature, source, tag, ci);
     }
 
-    /** Affiche [base] ; si identique à la dernière ligne dans la fenêtre, l'édite avec un compteur (xN). */
-    private void hsc$display(Component base, String key, boolean untouched, RuleConfig cfg,
+    /** Affiche [base] ; si la même ligne est déjà dans la fenêtre, la reprend en bas avec (xN). */
+    private void hsc$display(Component base, String key, boolean untouched, boolean system, RuleConfig cfg,
                              MessageSignature sig, GuiMessageSource src, GuiMessageTag tag, CallbackInfo ci) {
-        long now = System.currentTimeMillis();
-        long window = cfg.getDedupWindowMs();
-        List<GuiMessage> all = null;
-        try { all = hsc$allMessages(); } catch (Throwable ignored) {}
+        Collapse.Seen seen = cfg.getGroupRepeats() ? Collapse.INSTANCE.seen(key) : null;
 
-        boolean canCollapse = window > 0 && all != null && !all.isEmpty()
-                && key.equals(HSC_LAST_KEY) && (now - HSC_LAST_TIME) < window
-                && HSC_LAST_RENDERED != null
-                && all.get(0).content().getString().equals(HSC_LAST_RENDERED);
-
-        if (canCollapse) {
-            boolean edited = false;
-            try { all.remove(0); hsc$refreshTrimmed(); edited = true; } catch (Throwable ignored) {}
-            if (edited) {
-                HSC_LAST_COUNT++;
-                com.simplechat.Debug.logCollapsed(key, HSC_LAST_COUNT);
-                Component disp = withTimestamp(hsc$withCount(base, HSC_LAST_COUNT), cfg);
-                HSC_LAST_TIME = now;
-                HSC_LAST_RENDERED = disp.getString();
-                reAdd(disp, sig, src, tag, ci);
-                return;
-            }
-            // Édition impossible -> repli en ajout normal ci-dessous (sans compteur).
+        // Le spam système est rattrapé même si d'autres lignes sont passées entre-temps. Le chat
+        // joueur ne se replie que sur la ligne juste au-dessus : sans fenêtre de temps, un "gg"
+        // dit vingt minutes plus tôt n'a rien à faire en bas du chat avec un (x2).
+        if (seen != null && hsc$removeLine(seen.getRendered(), system ? Integer.MAX_VALUE : 1)) {
+            int count = seen.getCount() + 1;
+            com.simplechat.Debug.logCollapsed(key, count);
+            Component disp = withTimestamp(hsc$withCount(base, count), cfg);
+            Collapse.INSTANCE.remember(key, disp.getString(), count);
+            reAdd(disp, sig, src, tag, ci);
+            return;
         }
-
-        HSC_LAST_KEY = key;
-        HSC_LAST_COUNT = 1;
-        HSC_LAST_TIME = now;
+        // Ligne introuvable (sortie de l'historique, chat vidé) -> ajout normal, compteur reparti à 1.
 
         // Message intact + pas de timestamp : laisser MC l'ajouter tel quel. Ne PAS annuler/ré-ajouter,
         // sinon les autres mods injectant sur addMessage traitent chaque ligne en double.
         if (untouched && !cfg.getShowTimestamps()) {
-            HSC_LAST_RENDERED = base.getString();
+            Collapse.INSTANCE.remember(key, base.getString(), 1);
             return;
         }
 
         Component disp = withTimestamp(base, cfg);
-        HSC_LAST_RENDERED = disp.getString();
-        com.simplechat.Debug.logRendered(HSC_LAST_RENDERED);
+        Collapse.INSTANCE.remember(key, disp.getString(), 1);
+        com.simplechat.Debug.logRendered(disp.getString());
         reAdd(disp, sig, src, tag, ci);
+    }
+
+    /** Retire la ligne affichée [rendered], cherchée parmi les [depth] plus récentes. false si
+     *  elle n'y est plus : trimmée par la limite d'historique, ou chat vidé depuis. */
+    private boolean hsc$removeLine(String rendered, int depth) {
+        try {
+            List<GuiMessage> all = hsc$allMessages();
+            if (all == null) return false;
+            int n = Math.min(all.size(), depth);
+            for (int i = 0; i < n; i++) {
+                if (!all.get(i).content().getString().equals(rendered)) continue;
+                all.remove(i);
+                hsc$refreshTrimmed();
+                return true;
+            }
+        } catch (Throwable ignored) {}
+        return false;
     }
 
     private static Component hsc$withCount(Component base, int count) {

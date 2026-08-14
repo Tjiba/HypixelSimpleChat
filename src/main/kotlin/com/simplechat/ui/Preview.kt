@@ -7,6 +7,7 @@ import com.simplechat.engine.RuleAction
 import com.simplechat.engine.Seg
 import com.simplechat.engine.SelfPlayer
 import com.simplechat.engine.Verdict
+import com.simplechat.rules.Fmt
 import com.simplechat.rules.Registry
 import com.simplechat.rules.Rule
 
@@ -17,10 +18,12 @@ import com.simplechat.rules.Rule
 object Preview {
 
     // Canaux joueur : pas de règles derrière, seulement du formatage — exemples écrits à la main.
-    // La ligne qui parle du joueur porte son propre pseudo : il se reconnaît dans l'aperçu.
+    // Un message d'un autre membre puis un du joueur : le pseudo du joueur porte sa couleur, celui
+    // du membre celle de tout le monde — les deux lignes se comparent d'un coup d'œil.
     private fun guild(self: SelfPlayer?) = listOf(
         "Guild > BotName: G > DiscordUser: hey from discord",
         "Guild > [MVP++] BotName: [V1] DiscordUser: gg wp",
+        "Guild > §b[MVP§c+§b] Player §7[Member]§f: gg",
         "Guild > ${who(self, "§b[MVP§c+§b] ", "Player")} §7[Member]§f: hey all",
         "Officer > §6[MVP§1++§6] Officer §e[Staff]§f: on it",
     )
@@ -28,16 +31,38 @@ object Preview {
         "Party > §b[MVP§c+§b] Friend§8: §ron my way",
     )
     private fun public(self: SelfPlayer?) = listOf(
-        "§8[§d330§8] §6⛃ ${who(self, "§8[§6MVP§1++§8] §6", "MeteoFrance")}§8:§r selling stuff",
+        "§8[§d330§8] §6⛃ §8[§6MVP§1++§8] §6Player§8:§r wanna trade?",
+        "${level(self, "§8[§d330§8]")} §6⛃ ${who(self, "§8[§6MVP§1++§8] §6", "MeteoFrance")}§8:§r selling stuff",
     )
 
+    /** Ce qu'Hypixel écrit devant un message, et rien d'autre : "[MVP++] Nom". */
+    private val RANKED_NAME = Regex("^\\[[A-Z+]+] \\w{3,16}$")
+
     /**
-     * Le joueur avec son rang Hypixel. Si le serveur ne le donne pas, son pseudo garde quand même
-     * sa place sur le rang de l'exemple — c'est lui qu'il vient chercher dans l'aperçu, pas le rang.
+     * Le joueur avec son rang Hypixel. La liste des joueurs ne le donne pas toujours : sur SkyBlock
+     * elle sert aussi de tableau de bord et son entrée porte son niveau et son emblème à la place
+     * du rang — recopiée telle quelle, la ligne sortirait avec deux niveaux et un emblème échoué
+     * derrière le pseudo. Son pseudo garde alors sa place sur le rang de l'exemple : c'est lui
+     * qu'il vient chercher dans l'aperçu, pas le rang.
      */
     private fun who(self: SelfPlayer?, sampleRank: String, sampleName: String): String {
         val player = self ?: return sampleRank + sampleName
-        return player.display.ifEmpty { sampleRank + player.name }
+        if (!RANKED_NAME.matches(ChatRules.clean(player.display))) return sampleRank + player.name
+        return player.display
+    }
+
+    /** Le niveau que porte l'entrée de tab, "[372]", quand elle en porte un. */
+    private val TAB_LEVEL = Regex("^\\[\\d{1,4}]")
+
+    /**
+     * Son niveau, couleur d'Hypixel comprise, repris de la liste des joueurs — c'est là que
+     * SkyBlock l'écrit, à la place du rang. Sinon celui de l'exemple : les deux lignes de l'aperçu
+     * ne doivent pas se ressembler au point qu'on ne voie plus laquelle parle de lui.
+     */
+    private fun level(self: SelfPlayer?, sample: String): String {
+        val display = self?.display ?: return sample
+        val tag = TAB_LEVEL.find(ChatRules.clean(display))?.value ?: return sample
+        return Fmt.rawSpan(display, tag)
     }
 
     /** Catégorie factice : force l'aperçu à suivre les réglages passés, pas une page de canal. */

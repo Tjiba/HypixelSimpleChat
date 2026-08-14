@@ -30,14 +30,20 @@ object Foraging {
         description = "Shards dropped by a hunted mob",
         tab = "Foraging")
     val HUNTING = Group("foraging-hunting", "Escaped mobs", Category.SKYBLOCK, "HUNTING", RuleAction.COMPACT,
-        description = "Mobs lost on any zone",
+        description = "Mobs lost on any zone, capsule included",
+        tab = "Foraging", split = false)
+    val BIRDFEEDER = Group("foraging-birdfeeder", "Birdfeeder", Category.SKYBLOCK, "HUNTING", RuleAction.COMPACT,
+        description = "Birds attracted by the food you deposit",
         tab = "Foraging")
     val SAFARI_ENTRY = Group("foraging-safari-entry", "Safari entry", Category.SKYBLOCK, "SAFARI", RuleAction.COMPACT,
         description = "Players entering the Critter Safari",
         tab = "Foraging", split = false)
-    val SAFARI_MANAGER = Group("foraging-safari-manager", "Safari Manager", Category.SKYBLOCK, "SAFARI", RuleAction.HIDE,
-        description = "Ticket dialog, no information",
-        tab = "Foraging")
+    val SAFARI_CAPTURE = Group("foraging-safari-capture", "Capture", Category.SKYBLOCK, "SAFARI", RuleAction.COMPACT,
+        description = "Capsule thrown at a critter, and what it caught",
+        tab = "Foraging", split = false)
+    val SAFARI_MANAGER = Group("foraging-safari-manager", "Safari staff", Category.SKYBLOCK, "SAFARI", RuleAction.HIDE,
+        description = "Manager and receptionist dialog, no information",
+        tab = "Foraging", split = false)
     // Le récap est fusionné hors du registre (sept messages en un) : cette règle porte le réglage
     // et l'aperçu, le travail est fait par SafariSummary avant l'évaluation.
     val SAFARI_SUMMARY = Group("foraging-safari-summary", "Safari summary", Category.SKYBLOCK, "SAFARI", RuleAction.COMPACT,
@@ -160,10 +166,38 @@ object Foraging {
                 sample = "§6ᛜ §bMeteoFrance §ejoined the Critter Safari.",
                 title = "Player joined")
         } +
+        rules(SAFARI_CAPTURE) {
+            // Le jet ne dit rien de plus que la capture ou l'échappée qui suit, et se répète à
+            // chaque capsule : compact vide pour qu'il disparaisse aussi sur COMPACT.
+            rule("capsule-thrown", RuleAction.HIDE,
+                "^You threw a .+? at the .+?!",
+                compact = { "" },
+                sample = "§7You threw a §cCritter Capsule §7at the §9Nozzlenose§7!",
+                title = "Capsule thrown")
+            // Le shard porte le nom du critter : la quantité suffit, et seulement au-delà d'un.
+            rule("critter-caught", RuleAction.COMPACT,
+                "^CAPTURE! You caught an? (.+?) and gained (?:an?|([\\d,]+)x) ",
+                compact = {
+                    "${Fmt.rawColor(it.raw, "CAPTURE!", "§a")}§lCAPTURE! §r${Fmt.rawSpan(it.raw, it[1])}" +
+                        if (it[2].isEmpty()) "" else " §7x${it[2]}"
+                },
+                sample = "§a§lCAPTURE! §7You caught a §9Mantis Shrimp§7 and gained 2x §9Mantis Shrimp Shard§7!",
+                title = "Critter caught")
+        } +
         rules(SAFARI_MANAGER) {
+            // Hypixel étiquette ces lignes "[NPC] " : sans l'étiquette dans le pattern, le dialogue
+            // PNJ générique les prendrait et le réglage Safari staff ne servirait à rien.
             rule("safari-manager", RuleAction.HIDE,
-                "^Safari Manager: ",
-                sample = "§eSafari Manager§f: §rLooks good to me. Have fun out there!")
+                "^(?:\\[NPC] )?Safari Manager: ",
+                compact = { Fmt.stripNpc(it.raw) },
+                sample = "§e[NPC] §aSafari Manager§f: §rLooks good to me. Have fun out there!",
+                title = "Safari Manager")
+            // Le choix cliquable qui suit ("Select an option") n'est pas touché : lui porte l'action.
+            rule("safari-receptionist", RuleAction.HIDE,
+                "^(?:\\[NPC] )?Safari Receptionist: ",
+                compact = { Fmt.stripNpc(it.raw) },
+                sample = "§e[NPC] §aSafari Receptionist§f: §rWelcome to the Critter Safari!",
+                title = "Safari Receptionist")
         } +
         rules(SAFARI_SUMMARY) {
             // Jamais atteinte en jeu : SafariSummary tranche avant. Elle existe pour le réglage
@@ -209,12 +243,36 @@ object Foraging {
                 compact = { Fmt.rawSpan(it.raw, it[1]) },
                 sample = "§aYou caught §7x2 §aParched §aShards§a!")
         } +
+        rules(BIRDFEEDER) {
+            rule("bird-attracted", RuleAction.COMPACT,
+                "^A (.+?) was attracted to the Birdfeeder!",
+                compact = { "${Fmt.rawSpan(it.raw, it[1])} §7attracted" },
+                sample = "§7A §aBluebird §7was attracted to the Birdfeeder!",
+                title = "Bird attracted")
+            rule("bird-food-full", RuleAction.GREY,
+                "^You cannot deposit any more bird food",
+                sample = "§cYou cannot deposit any more bird food. Wait for a bird to appear!",
+                title = "Birdfeeder full")
+            // Tim redonne le mode d'emploi du Birdfeeder à chaque passage devant lui.
+            rule("birdwatcher-tim", RuleAction.HIDE,
+                "^(?:\\[NPC] )?Birdwatcher Tim: ",
+                compact = { Fmt.stripNpc(it.raw) },
+                sample = "§e[NPC] §aBirdwatcher Tim§f: §rIf you place some food in it and wait a while, a Bird will show up!",
+                title = "Birdwatcher Tim")
+        } +
         rules(HUNTING) {
             // Tous les mobs de chasse ratés passent par là, chacun avec sa couleur.
             rule("mob-escaped", RuleAction.COMPACT,
                 "^You (?:looked away|didn't reel|reeled too early)! (.+?) escaped!",
                 compact = { "${Fmt.rawSpan(it.raw, "${it[1]} escaped")}" },
-                sample = "§cYou looked away! §fGroundhog §cescaped!")
+                sample = "§cYou looked away! §fGroundhog §cescaped!",
+                title = "Escaped a catch")
+            // Safari : la capsule ratée dit la même chose, autrement.
+            rule("capsule-escaped", RuleAction.COMPACT,
+                "^The (.+?) escaped your Critter Capsule!",
+                compact = { Fmt.rawSpan(it.raw, "${it[1]} escaped") },
+                sample = "§7The §9Nozzlenose §7escaped your Critter Capsule!",
+                title = "Escaped the capsule")
         }
 
 }

@@ -17,8 +17,9 @@ data class ChannelStyle(
 )
 
 /**
- * Le joueur local. [display] = son pseudo avec son rang tel qu'Hypixel l'écrit ("§6[MVP§c++§6] Foo"),
- * vide s'il n'est pas connu ; [highlightColor] null = ne pas repérer son nom dans le chat.
+ * Le joueur local. [display] = son pseudo tel que la liste des joueurs l'écrit ("§6[MVP§c++§6] Foo"),
+ * vide s'il n'est pas connu — sur SkyBlock cette liste sert de tableau de bord et l'entrée porte son
+ * niveau et son emblème plutôt que son rang ; [highlightColor] null = ne pas repérer son nom dans le chat.
  */
 data class SelfPlayer(
     val name: String,

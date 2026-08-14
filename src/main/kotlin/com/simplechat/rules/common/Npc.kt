@@ -2,6 +2,7 @@ package com.simplechat.rules.common
 
 import com.simplechat.engine.RuleAction
 import com.simplechat.rules.Category
+import com.simplechat.rules.Fmt
 import com.simplechat.rules.Group
 import com.simplechat.rules.rules
 
@@ -17,7 +18,7 @@ object Npc {
         rules(NPC_DIALOG) {
             rule("npc-dialog", RuleAction.GREY,
                 "^\\[NPC] ",
-                compact = { it.raw.replaceFirst(Regex("\\[NPC]\\s*"), "") },
+                compact = { Fmt.stripNpc(it.raw) },
                 sample = "§e[NPC] Simon§f: We hope you enjoy the festivities this year!")
         } +
         rules(ABIPHONE) {
