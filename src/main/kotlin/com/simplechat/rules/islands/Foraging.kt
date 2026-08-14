@@ -32,7 +32,7 @@ object Foraging {
     val HUNTING = Group("foraging-hunting", "Escaped mobs", Category.SKYBLOCK, "HUNTING", RuleAction.COMPACT,
         description = "Mobs lost on any zone, capsule included",
         tab = "Foraging", split = false)
-    val BIRDFEEDER = Group("foraging-birdfeeder", "Birdfeeder", Category.SKYBLOCK, "HUNTING", RuleAction.COMPACT,
+    val BIRDFEEDER = Group("foraging-birdfeeder", "Birdfeeder", Category.SKYBLOCK, "SAFARI", RuleAction.COMPACT,
         description = "Birds attracted by the food you deposit",
         tab = "Foraging")
     val SAFARI_ENTRY = Group("foraging-safari-entry", "Safari entry", Category.SKYBLOCK, "SAFARI", RuleAction.COMPACT,

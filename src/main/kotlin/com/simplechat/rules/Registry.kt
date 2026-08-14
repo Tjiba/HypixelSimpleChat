@@ -46,9 +46,8 @@ object Registry {
         Foraging.TREE_GIFT, Foraging.FLOOR_DROP, Foraging.PETALFALL, Foraging.WOODPECKER,
         Foraging.TORRHUS, Foraging.HIVE,
         Foraging.APPEARED, Foraging.SHARDS, Foraging.HUNTING, Foraging.HONEY_TREE,
-        Foraging.BIRDFEEDER,
         Foraging.SAFARI_ENTRY, Foraging.SAFARI_CAPTURE, Foraging.SAFARI_MANAGER, Foraging.SAFARI_SUMMARY,
-        Foraging.SAFARI_MILESTONES, Foraging.SAFARI_DISABLED,
+        Foraging.SAFARI_MILESTONES, Foraging.SAFARI_DISABLED, Foraging.BIRDFEEDER,
         Abilities.ABILITIES, Combat.COMBAT_HEAL, Drops.SKYBLOCK_XP, Drops.REWARDS,
         Misc.MISC, Bazaar.BAZAAR, Slayer.SLAYER, Events.EVENTS, Warnings.WARNINGS,
     )
