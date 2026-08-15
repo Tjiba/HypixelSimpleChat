@@ -10,11 +10,11 @@ object Settings : HscConfig("simplechat/config") {
 
     var masterEnabled by boolean(true) {
         name = "Enable mod"
-        description = "Master switch — off leaves chat 100% untouched"
+        description = "Master switch. Off leaves chat 100% untouched"
     }
     var groupRepeats by boolean(true) {
         name = "Group repeats"
-        description = "Merge an identical message into its (xN) line — system spam even with other messages in between"
+        description = "Merge an identical message into its (xN) line, even with other messages in between"
     }
     var smartCollapse by boolean(true) {
         name = "Smart collapse"
@@ -35,13 +35,13 @@ object Settings : HscConfig("simplechat/config") {
 
     var highlightSelf by boolean(false) {
         name = "Highlight my name"
-        description = "Color your own name in chat — spot your messages at a glance"
+        description = "Color your own name in chat, to spot your messages at a glance"
     }
     var selfColor by color(Color(0xFFAA00).rgb) { name = "My name color" }
 
     var compactTheme by boolean(false) {
         name = "Compact color theme"
-        description = "Recolor the white words of compact messages with your theme color — one consistent look"
+        description = "Recolor the white words of compact messages with your theme color"
     }
     var compactThemeColor by color(Color(0x55FFFF).rgb) { name = "Theme color" }
 
@@ -51,7 +51,7 @@ object Settings : HscConfig("simplechat/config") {
     }
     var tabFilterMode by boolean(false) {
         name = "Only show channel messages while selected"
-        description = "When you select a tab — On: show only that channel's messages · Off: send your messages to that channel"
+        description = "When you select a tab. On: show only that channel's messages · Off: send your messages to that channel"
     }
 
     /** Preset bundlé (config recommandée). false si la ressource manque. */
@@ -189,7 +189,7 @@ object SkyBlockCleanup : HscCategory("SkyBlock") {
 
     var soloClass by boolean(true) {
         name = "Compact solo class stats"
-        description = "Shorten 'stats are doubled…' — full text on hover"
+        description = "Shorten 'stats are doubled…', full text on hover"
     }
     var hoppity by boolean(true) {
         name = "Compact Hoppity rabbits"
@@ -197,16 +197,16 @@ object SkyBlockCleanup : HscCategory("SkyBlock") {
     }
 
     var bazaarItemsColor by color(Color(0xFFAA00).rgb) {
-        name = "Bazaar batch — items"
+        name = "Bazaar batch: items"
         description = "Color of the item count when several orders are merged into one line"
     }
     var bazaarSalesColor by color(Color(0x00AAAA).rgb) {
-        name = "Bazaar batch — orders"
+        name = "Bazaar batch: orders"
         description = "Color of the sale/buy count on that same line"
     }
 
     var customPatterns by string("") {
         name = "Custom hidden messages"
-        description = "Comma-separated text — any message containing one of these is hidden"
+        description = "Comma-separated text. Any message containing one of these is hidden"
     }
 }

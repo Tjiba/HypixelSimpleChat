@@ -45,7 +45,7 @@ object SimpleChatMod : ClientModInitializer {
                         Debug.enabled = !Debug.enabled
                         val state = if (Debug.enabled) "§aon" else "§coff"
                         ctx.source.client.player?.sendSystemMessage(
-                            Component.literal("§6[§bSimple§fChat§6] §7Debug log $state§7 — see logs/latest.log"))
+                            Component.literal("§6[§bSimple§fChat§6] §7Debug log $state§7, see logs/latest.log"))
                         1
                     })
                     .executes { pendingConfig = true; 1 }

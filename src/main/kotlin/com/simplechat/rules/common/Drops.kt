@@ -12,7 +12,7 @@ object Drops {
     val REWARDS = Group("rewards", "Rewards / drops", Category.SKYBLOCK, "WORLD & EVENTS", RuleAction.HIDE,
         description = "Essence finds, Event EXP bonuses, unclaimed rewards, radio signal, shard charms, expired combo")
     val SKYBLOCK_XP = Group("skyblockXp", "SkyBlock XP gains", Category.SKYBLOCK, "WORLD & EVENTS", RuleAction.COMPACT,
-        description = "Every '+N SkyBlock XP' line — shortened, never hidden")
+        description = "Every '+N SkyBlock XP' line, shortened but never hidden")
 
     /**
      * Déclarée avant tout le reste : un gain d'XP SkyBlock est traité ici et par aucune autre règle.

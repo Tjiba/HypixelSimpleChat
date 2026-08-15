@@ -12,7 +12,7 @@ object Npc {
     val NPC_DIALOG = Group("npcDialog", "NPC dialog", Category.SKYBLOCK, "WORLD & EVENTS", RuleAction.GREY,
         description = "OFF = as-is · GREY = dimmed · COMPACT = reformat · COMPACT_GREY = reformat + dimmed · HIDE = remove")
     val ABIPHONE = Group("abiphoneRing", "Abiphone ring", Category.SKYBLOCK, "GENERAL", RuleAction.HIDE,
-        description = "'✆ RING…' lines — the clickable pickup line always stays")
+        description = "'✆ RING…' lines. The clickable pickup line always stays")
 
     val rules =
         rules(NPC_DIALOG) {

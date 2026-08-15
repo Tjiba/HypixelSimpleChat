@@ -12,9 +12,9 @@ object Pets {
 
     val PET_SPAWN = Group("petSpawn", "Pet spawn/despawn", Category.LOBBY, "", RuleAction.COMPACT)
     val PET_SUMMON = Group("petSummon", "Pet summon/despawn", Category.SKYBLOCK, "GENERAL", RuleAction.COMPACT,
-        description = "'You summoned your …' — compact keeps the pet's rarity color")
+        description = "'You summoned your …', compact keeps the pet's rarity color")
     val AUTOPET = Group("autopet", "Autopet equip", Category.SKYBLOCK, "GENERAL", RuleAction.COMPACT,
-        description = "'Autopet equipped your [Lvl 100] …' — compact drops the VIEW RULE tail")
+        description = "'Autopet equipped your [Lvl 100] …', compact drops the VIEW RULE tail")
 
     val rules =
         rules(PET_SPAWN) {

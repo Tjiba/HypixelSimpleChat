@@ -130,6 +130,7 @@ public abstract class ChatHudMixin implements IHscChat {
     }
 
     /** Message affiché sous le curseur : géométrie du chat recalculée (pas de helper vanilla). */
+    // TODO les 4.0 / 40.0 sortent de la géométrie vanilla, à revérifier à chaque version de MC.
     @Override
     public GuiMessage hsc$messageAt(double mouseX, double mouseY) {
         try {
@@ -153,6 +154,7 @@ public abstract class ChatHudMixin implements IHscChat {
 
     // Historique étendu : remplace la limite vanilla de 100 (allMessages + lignes visibles) par le réglage.
     // require=0 : si un patch MC déplace la constante, on retombe sur les 100 vanilla au lieu de crasher.
+    // TODO le 2048 est aussi en dur dans Collapse.MAX_KEYS et dans le réglage, à factoriser.
     @ModifyConstant(method = {"addMessageToQueue", "addMessageToDisplayQueue"}, constant = @Constant(intValue = 100), require = 0)
     private int hsc$maxHistory(int original) {
         return Math.max(100, Math.min(2048, com.simplechat.config.Settings.INSTANCE.getMaxMessages()));

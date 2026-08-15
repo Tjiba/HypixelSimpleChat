@@ -77,6 +77,7 @@ object Updater {
         }
         result
     } catch (e: NumberFormatException) {
+        // TODO un numéro illisible passe pour "à jour", sans rien dire au joueur.
         SimpleChatMod.LOGGER.warn("Version comparison error: ${e.message}")
         0
     }

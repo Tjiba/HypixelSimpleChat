@@ -4,7 +4,7 @@
 
 # Hypixel Simple Chat
 
-**A client-side Fabric mod that reformats Hypixel chat (lobbies + SkyBlock) into a clean, readable version — without losing anything.**
+**Client-side Fabric mod that reformats Hypixel chat (lobbies + SkyBlock) so it stays readable.**
 
 [![Minecraft](https://img.shields.io/badge/Minecraft-26.1.2%20%7C%2026.2-brightgreen)](#)
 [![Loader](https://img.shields.io/badge/Loader-Fabric-blue)](https://fabricmc.net/)
@@ -19,9 +19,9 @@
 
 ## What it does
 
-Hypixel chat is noisy: level brackets, emblems, guild bridge relays, endless SkyBlock spam, repeated damage lines. Simple Chat rewrites it live on the client into something you actually want to read — every message stays clickable and hover-intact, nothing is dropped.
+Hypixel chat is noisy: level brackets, emblems, guild bridge relays, SkyBlock spam, repeated damage lines. Simple Chat rewrites it client-side while you play. Messages stay clickable and keep their hover text, and nothing is dropped unless you ask for it.
 
-Turn the master switch off and your chat is **100% untouched**.
+Master switch off = chat 100% untouched.
 
 ## Features
 
@@ -32,7 +32,7 @@ Turn the master switch off and your chat is **100% untouched**.
 | **Cleaner channels** | Guild, Party & Public with your own colors, ranks and prefixes. |
 | **Guild Discord bridge** | Tidies Discord messages relayed into guild chat. |
 | **Auto-collapse** | Repeated lines fold into one with a `(xN)` counter. |
-| **Chat tabs** | All / Party / Guild above the input — route your messages or filter the view. |
+| **Chat tabs** | All / Party / Guild above the input. Route your messages, or filter the view. |
 | **Ctrl+F search** | Live-filter your chat history right from the chat input. |
 | **Right-click to copy** | Right-click any chat line to copy it. |
 | **Extended history** | Keep up to 2048 messages instead of vanilla's 100. |
@@ -58,7 +58,7 @@ Settings are also reachable through **Mod Menu** (26.1), and there's a **Discord
 ## Install
 
 1. Install Fabric Loader for your Minecraft version.
-2. Drop `HypixelSimpleChat-1.0.0.jar` into your `mods` folder, along with Fabric API and Fabric Language Kotlin — **one universal jar for 26.1.2 and 26.2**.
+2. Drop `HypixelSimpleChat-1.0.0.jar` into your `mods` folder, along with Fabric API and Fabric Language Kotlin. One universal jar covers 26.1.2 and 26.2.
 3. Launch, join Hypixel, run `/hsc`.
 
 ## License
