@@ -35,6 +35,19 @@ object ChatRules {
     private val CH_OFFICER = Pattern.compile("^(Officer|O) > .+")
     private val CH_PARTY = Pattern.compile("^(Party|P) > .+")
     private val CH_WHISPER = Pattern.compile("^(From|To) .+")
+    /** Les PNJ des Catacombes parlent sans rang : "Mort: Good luck." passerait pour un message de
+     *  joueur. Liste partagée avec les règles Dungeons qui les masquent. */
+    const val DUNGEON_SPEAKERS = "Mort|Fairy|The Watcher"
+
+    /** Les boss non plus n'ont ni rang ni tag depuis qu'Hypixel a lâché « [BOSS] ». Un étage des
+     *  Catacombes pour la règle Dungeons, le reste de SkyBlock pour la règle Combat. */
+    const val FLOOR_BOSSES = "Bonzo|Scarf|The Professor|Thorn|Livid|Sadan|Necron|Maxor|Storm|Goldor"
+    const val WORLD_BOSSES = "Arachne|Endstone Protector|Barbarian Duke X|Mage Outlaw|Ashfang|" +
+        "Bladesoul|Magma Boss|Kuudra|Headless Horseman|Sea Emperor|Water Hydra|Reindrake|Grim Reaper"
+
+    private val CH_SPEAKER = Pattern.compile(
+        "^(?:\\[(?:BOSS|NPC)] )?(?:Master )?(?:$DUNGEON_SPEAKERS|$FLOOR_BOSSES|$WORLD_BOSSES): ")
+
     // Message joueur public : (préfixe niveau/emblème optionnel) rank/nom puis ": ".
     // [NPC] est un dialogue SYSTEM, pas un rank -> exclu via lookahead.
     private val CH_PUBLIC = Pattern.compile("^(?!\\[NPC] )(?!\\[BOSS] )(?!\\[STATUE] )(?:\\[\\d{1,4}] )?(?:[^\\[\\w\\s]\\S* )?(?:\\[[A-Za-z+]+] )?[\\w]+: .+")
@@ -44,7 +57,7 @@ object ChatRules {
         CH_OFFICER.matcher(clean).find() -> Channel.OFFICER
         CH_PARTY.matcher(clean).find() -> Channel.PARTY
         CH_WHISPER.matcher(clean).find() -> Channel.WHISPER
-        CH_PUBLIC.matcher(clean).find() -> Channel.PUBLIC
+        CH_PUBLIC.matcher(clean).find() && !CH_SPEAKER.matcher(clean).find() -> Channel.PUBLIC
         else -> Channel.SYSTEM
     }
 
@@ -52,12 +65,16 @@ object ChatRules {
         if (!cfg.masterEnabled) return Verdict.Pass
         val clean = clean(raw)
         if (clean.isEmpty()) return Verdict.Pass
-        if (HARD_PASS.matcher(clean).matches()) return Verdict.Pass
+        // Les MP ne sont jamais touchés, sauf sourdine : elle couvre les deux sens.
+        if (HARD_PASS.matcher(clean).matches())
+            return if (Mute.matches(clean, Channel.WHISPER, cfg)) Verdict.Hide else Verdict.Pass
 
         when (classify(clean)) {
             Channel.WHISPER -> return Verdict.Pass
             Channel.GUILD, Channel.OFFICER, Channel.PARTY, Channel.PUBLIC -> {
                 val ch = classify(clean)
+                // Avant le mode : un joueur en sourdine reste masqué même en affichage vanilla.
+                if (Mute.matches(clean, ch, cfg)) return Verdict.Hide
                 val style = when (ch) {
                     Channel.PARTY -> cfg.partyStyle
                     Channel.PUBLIC -> cfg.publicStyle

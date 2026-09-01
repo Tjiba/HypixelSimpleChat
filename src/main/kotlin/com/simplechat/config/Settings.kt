@@ -39,6 +39,11 @@ object Settings : HscConfig("simplechat/config") {
     }
     var selfColor by color(Color(0xFFAA00).rgb) { name = "My name color" }
 
+    var mutedPlayers by string("") {
+        name = "Muted players"
+        description = "Comma-separated names. Hides everything they say, whispers included"
+    }
+
     var compactTheme by boolean(false) {
         name = "Compact color theme"
         description = "Recolor the white words of compact messages with your theme color"
@@ -52,6 +57,19 @@ object Settings : HscConfig("simplechat/config") {
     var tabFilterMode by boolean(false) {
         name = "Only show channel messages while selected"
         description = "When you select a tab. On: show only that channel's messages · Off: send your messages to that channel"
+    }
+
+    /** Pseudos en sourdine, tels que saisis dans le menu. */
+    fun mutedList(): List<String> = mutedPlayers.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+
+    /** Ajoute ou retire un pseudo de la sourdine. false si la liste était déjà dans cet état. */
+    fun setMuted(name: String, muted: Boolean): Boolean {
+        val list = mutedList()
+        val known = list.any { it.equals(name, ignoreCase = true) }
+        if (known == muted) return false
+        val next = if (muted) list + name else list.filterNot { it.equals(name, ignoreCase = true) }
+        mutedPlayers = next.joinToString(", ")
+        return true
     }
 
     /** Preset bundlé (config recommandée). false si la ressource manque. */

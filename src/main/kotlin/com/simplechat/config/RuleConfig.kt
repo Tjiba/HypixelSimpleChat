@@ -27,6 +27,7 @@ data class RuleConfig(
     val prefix: PublicPrefixToggles,
     val bridge: GuildBridgeConfig,
     val customHidePatterns: List<String>,
+    val mutedPlayers: List<String> = emptyList(),
     /** null = compte inconnu (hors partie, ou en test). */
     val self: SelfPlayer? = null,
     val showTimestamps: Boolean,
@@ -81,6 +82,7 @@ data class RuleConfig(
             prefix = PublicPrefixToggles(hideLevel = false, hideEmblem = true),
             bridge = GuildBridgeConfig("", "Bridge", "G", "O", 0x55FF55, 0x55FFFF, 0x55FF55, 0x55FFFF, true, true, 0x55FF55, 0xFFFF55, 0xFF5555),
             customHidePatterns = emptyList(),
+            mutedPlayers = emptyList(),
             showTimestamps = false,
             timestampColor = 0x555555,
             compactSoloClass = true,
@@ -117,6 +119,7 @@ data class RuleConfig(
                 GuildChat.v1Color and RGB, GuildChat.v2Color and RGB, GuildChat.v3Color and RGB,
             ),
             customHidePatterns = SkyBlockCleanup.customPatterns.split(",").map { it.trim() }.filter { it.isNotEmpty() },
+            mutedPlayers = Settings.mutedList(),
             self = selfPlayer(),
             showTimestamps = Settings.showTimestamps,
             timestampColor = Settings.timestampColor and RGB,

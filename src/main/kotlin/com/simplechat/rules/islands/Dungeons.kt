@@ -1,5 +1,6 @@
 package com.simplechat.rules.islands
 
+import com.simplechat.engine.ChatRules
 import com.simplechat.engine.RuleAction
 import com.simplechat.rules.Category
 import com.simplechat.rules.Fmt
@@ -12,6 +13,37 @@ object Dungeons {
     val DUNGEONS = Group("dungeons", "Dungeons", Category.SKYBLOCK, "DUNGEONS", RuleAction.HIDE,
         description = "Keys, doors, levers, chests, puzzles, blessings, boss/NPC lines",
         tab = "Dungeons")
+
+    /** Déclarée avant Npc dans le registre : ces PNJ arrivent tantôt nus, tantôt préfixés
+     *  « [NPC] », et le réglage générique des dialogues les avalerait. */
+    val npc = rules(DUNGEONS) {
+        rule("mort-dialog", RuleAction.HIDE,
+            "^(?:\\[(?:BOSS|NPC)] )?(?:Master )?Mort: .+",
+            compact = { untag(it.raw) },
+            sample = "§6Master Mort: Good luck in there!",
+            title = "Mort dialog")
+        // Le Watcher et les boss d'étage n'existent que dans les Catacombes : leur réplique tient à
+        // ce réglage-ci, tagée « [BOSS] » ou nue. Sans ça, c'est « Boss messages » (Combat) qui
+        // les avalait, et le joueur avait beau tout mettre en HIDE ici, rien ne changeait.
+        rule("watcher-dialog", RuleAction.HIDE,
+            "^(?:\\[(?:BOSS|NPC)] )?The Watcher: .+",
+            compact = { untag(it.raw) },
+            sample = "§cThe Watcher§f: Go, fight!",
+            title = "The Watcher dialog")
+        rule("boss-dialog", RuleAction.HIDE,
+            "^(?:\\[(?:BOSS|NPC)] )?(?:${ChatRules.FLOOR_BOSSES}): .+",
+            compact = { untag(it.raw) },
+            sample = "§cBonzo§f: Sike",
+            title = "Boss dialog")
+        rule("fairy-dialog", RuleAction.HIDE,
+            ".+ the Fairy: .+",
+            compact = { untag(it.raw) },
+            sample = "§dFairy the Fairy: Good luck!",
+            title = "Fairy dialog")
+    }
+
+    /** La réplique sans son étiquette de tête : le compact garde la phrase et ses couleurs. */
+    private fun untag(raw: String) = raw.replaceFirst(Regex("\\[(?:BOSS|NPC)]\\s*"), "")
 
     val rules = rules(DUNGEONS) {
         rule("key-picked-up", RuleAction.HIDE,
@@ -73,15 +105,18 @@ object Dungeons {
             "(?:It isn't your turn!|Don't move diagonally! Bad!|Oops! You stepped on the wrong block!)",
             sample = "§cOops! You stepped on the wrong block!",
             title = "Terminal mistake")
-        // Les lignes préfixées « [NPC] » appartiennent au réglage NPC dialog, qui décide avant.
-        rule("mort-dialog", RuleAction.HIDE,
-            ".+ Mort: .+",
-            sample = "§6Master Mort: Good luck in there!",
-            title = "Mort dialog")
-        rule("fairy-dialog", RuleAction.HIDE,
-            ".+ the Fairy: .+",
-            sample = "§dFairy the Fairy: Good luck!",
-            title = "Fairy dialog")
+        rule("blood-door-opened", RuleAction.HIDE,
+            "^The (.+) DOOR has been opened!",
+            compact = { "§7Door §8· ${Fmt.rawSpan(it.raw, it[1])}" },
+            sample = "§cThe §c§lBLOOD DOOR§r§c has been opened!",
+            title = "Blood door opened")
+        // Les clés de boss ont leur propre réglage : c'est la seule ligne qui dit qu'un joueur
+        // a ramassé celle qui ouvre la salle suivante.
+        rule("boss-key-obtained", RuleAction.HIDE,
+            "^(.+) has obtained (Wither|Blood) Key!",
+            compact = { "§a+ ${Fmt.rawSpan(it.raw, "${it[2]} Key")} §7(${it[1]})" },
+            sample = "§aTimo has obtained §5Wither Key§a!",
+            title = "Boss key obtained")
         rule("dungeon-buff", RuleAction.HIDE,
             "^DUNGEON BUFF! (.+)$",
             compact = { "§dBuff §7· ${Fmt.rawSpan(it.raw, it[1])}" },

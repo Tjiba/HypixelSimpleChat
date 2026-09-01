@@ -16,11 +16,9 @@ object Foraging {
     val FLOOR_DROP = Group("foraging-floor-drop", "Floor drop", Category.SKYBLOCK, "GENERAL", RuleAction.COMPACT,
         description = "Logs and drops found on the ground",
         tab = "Foraging")
-    val PETALFALL = Group("foraging-petalfall", "Petalfall", Category.SKYBLOCK, "GENERAL", RuleAction.COMPACT,
-        tab = "Foraging")
-    val WOODPECKER = Group("foraging-woodpecker", "Woodpecker", Category.SKYBLOCK, "GENERAL", RuleAction.COMPACT,
-        tab = "Foraging")
+    // Hypixel a fondu Petalfall et Woodpecker dans Timber : un seul cri pour tous les arbres.
     val TIMBER = Group("foraging-timber", "Timber", Category.SKYBLOCK, "GENERAL", RuleAction.COMPACT,
+        description = "A tree felled whole, by you or by someone else",
         tab = "Foraging")
     val HONEY_TREE = Group("foraging-honey-tree", "Honey tree", Category.SKYBLOCK, "HUNTING", RuleAction.COMPACT,
         description = "A mob comes out of a honey tree",
@@ -92,24 +90,13 @@ object Foraging {
                 },
                 sample = "§6§lFLOOR DROP! §fYou found Fig Log §7x512 §fon the ground!")
         } +
-        rules(PETALFALL) {
-            // Couleur reprise du brut : Hypixel colore ces cris hors palette vanilla.
-            rule("petalfall", RuleAction.COMPACT,
-                "^PETALFALL! You felled the entire Tree!",
-                compact = { "${Fmt.rawColor(it.raw, "PETALFALL!", "§a")}§lPETALFALL!" },
-                sample = "§#3BE63B§lPETALFALL! §r§fYou felled the entire §#3BE63BTree§f!")
-        } +
-        rules(WOODPECKER) {
-            rule("woodpecker", RuleAction.COMPACT,
-                "^WOODPECKER! You felled the entire Tree!",
-                compact = { "${Fmt.rawColor(it.raw, "WOODPECKER!", "§a")}§lWOODPECKER!" },
-                sample = "§#3BE63B§lWOODPECKER! §r§fYou felled the entire §#3BE63BTree§f!")
-        } +
         rules(TIMBER) {
+            // Le cri seul, sa couleur reprise du brut : l'essence et le bucheron ne sont pas gardés,
+            // c'est ce qui permet aux procs de se replier en une ligne comptée.
             rule("timber", RuleAction.COMPACT,
-                "^TIMBER! You felled the entire Tree!",
-                compact = { "${Fmt.rawColor(it.raw, "TIMBER!", "§b")}§lTIMBER!" },
-                sample = "§#3BE6E6§lTIMBER! §r§fYou felled the entire §#3BE6E6Tree§f!")
+                "^TIMBER! (?:.+?) felled the entire (?:.+)!",
+                compact = { "${Fmt.rawColor(it.raw, "TIMBER!", "§c")}§lTIMBER!" },
+                sample = "§c§lTIMBER! §r§fYou felled the entire §eHelix Tree§f!")
         } +
         rules(TORRHUS) {
             // Déclarée avant Combat dans le registre : le générique "… DOWN!" des boss l'avalerait.

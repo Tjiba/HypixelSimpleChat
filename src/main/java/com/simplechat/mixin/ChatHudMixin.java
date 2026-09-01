@@ -179,6 +179,8 @@ public abstract class ChatHudMixin implements IHscChat {
         if (warned && clean.isEmpty()) { ci.cancel(); return; }
         Verdict v = com.simplechat.SafariSummary.INSTANCE.process(clean, cfg);
         if (v == null) v = com.simplechat.HoppityCompact.INSTANCE.process(clean, cfg.getCompactHoppity());
+        // Avant le registre : le début de quête slayer attend sa ligne d'objectif pour être nommé.
+        if (v == null) v = com.simplechat.rules.common.Slayer.INSTANCE.process(clean, cfg);
         if (v == null) v = ChatRules.INSTANCE.evaluate(legacy, cfg);
         // Après les règles : c'est leur verdict qui dit si le joueur veut voir ses ordres Bazaar.
         Verdict batch = com.simplechat.BazaarSummary.INSTANCE.process(clean, legacy, v, cfg);
@@ -245,6 +247,9 @@ public abstract class ChatHudMixin implements IHscChat {
         // qu'une ligne de plus par ordre. Introuvable (chat vidé, historique plein) -> ajout normal.
         String batched = com.simplechat.BazaarSummary.INSTANCE.stale();
         if (batched != null) hsc$removeLine(batched, HSC_BATCH_DEPTH);
+        // Fin de quête slayer : sa ligne s'efface pour revenir collée à celle du niveau.
+        String quest = com.simplechat.rules.common.Slayer.INSTANCE.stale();
+        if (quest != null) hsc$removeLine(quest, HSC_BATCH_DEPTH);
 
         Collapse.Seen seen = cfg.getGroupRepeats() ? Collapse.INSTANCE.seen(key) : null;
 
@@ -257,6 +262,7 @@ public abstract class ChatHudMixin implements IHscChat {
             Component disp = withTimestamp(hsc$withCount(base, count), cfg);
             Collapse.INSTANCE.remember(key, disp.getString(), count);
             com.simplechat.BazaarSummary.INSTANCE.displayed(disp.getString());
+            com.simplechat.rules.common.Slayer.INSTANCE.displayed(disp.getString());
             reAdd(disp, sig, src, tag, ci);
             return;
         }
@@ -272,6 +278,7 @@ public abstract class ChatHudMixin implements IHscChat {
         Component disp = withTimestamp(base, cfg);
         Collapse.INSTANCE.remember(key, disp.getString(), 1);
         com.simplechat.BazaarSummary.INSTANCE.displayed(disp.getString());
+        com.simplechat.rules.common.Slayer.INSTANCE.displayed(disp.getString());
         com.simplechat.Debug.logRendered(disp.getString());
         reAdd(disp, sig, src, tag, ci);
     }

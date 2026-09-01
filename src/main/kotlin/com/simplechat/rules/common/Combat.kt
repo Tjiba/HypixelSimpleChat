@@ -1,5 +1,6 @@
 package com.simplechat.rules.common
 
+import com.simplechat.engine.ChatRules
 import com.simplechat.engine.RuleAction
 import com.simplechat.rules.Category
 import com.simplechat.rules.Fmt
@@ -19,10 +20,12 @@ object Combat {
 
     val rules =
         rules(BOSS) {
+            // Arachne et compagnie parlent tagées « [BOSS] » ou nues selon les cas : les deux comptent.
+            // Les boss d'étage des Catacombes ont leur propre réglage, côté Dungeons.
             rule("boss", RuleAction.HIDE,
-                "^\\[(?:BOSS|STATUE)] |^ *[A-Z][A-Z ]+ DOWN!| has spawned!$",
+                "^\\[(?:BOSS|STATUE)] |^(?:${ChatRules.WORLD_BOSSES}): |^ *[A-Z][A-Z ]+ DOWN!| has spawned!$",
                 compact = { it.raw.replaceFirst(Regex("\\[(?:BOSS|STATUE)]\\s*"), "") },
-                sample = "§c[BOSS] Maxor§r§f: I've been expecting you.")
+                sample = "§c[BOSS] Arachne§r§f: You dare disturb me?")
         } +
         rules(DAMAGE) {
             rule("damage-spam", RuleAction.GREY,

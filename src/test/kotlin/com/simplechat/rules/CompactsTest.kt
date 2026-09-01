@@ -1,6 +1,7 @@
 package com.simplechat.rules
 
 import com.simplechat.config.RuleConfig
+import com.simplechat.engine.Channel
 import com.simplechat.engine.ChatRules
 import com.simplechat.engine.LegacyText
 import com.simplechat.engine.RuleAction
@@ -48,15 +49,53 @@ class CompactsTest {
         // Un nom de joueur garde son rang entier, avec le § interne du "+".
         assertEquals(Verdict.Replace("§7Door §8· §b[MVP§c+§b] Timo"),
             ChatRules.evaluate("§b[MVP§c+§b] Timo §7opened a §5WITHER §7door!", c))
+        assertEquals(Verdict.Replace("§7Door §8· §cBLOOD"),
+            ChatRules.evaluate("§cThe §c§lBLOOD DOOR§r§c has been opened!", c))
+        assertEquals(Verdict.Replace("§a+ §5Wither Key §7([MVP+] TankF7)"),
+            ChatRules.evaluate("§a[MVP§c+§a] TankF7 has obtained §5Wither Key§a!", c))
+    }
+
+    @Test fun `dungeon npc dialog is not a player message`() {
+        val hide = RuleConfig.DEFAULT
+        // Sans préfixe, "Mort: Good luck." ressemble à un message de joueur : la liste des
+        // orateurs le renvoie au registre, qui le masque avec le reste des Catacombes.
+        assertEquals(Channel.SYSTEM, ChatRules.classify("Mort: Good luck."))
+        assertEquals(Verdict.Hide, ChatRules.evaluate("§cMort§f: Good luck.", hide))
+        assertEquals(Verdict.Hide, ChatRules.evaluate("§cThe Watcher§f: Go, fight!", hide))
+        // Même nu, un boss reste un boss : sa réplique part avec le reste des Catacombes.
+        assertEquals(Channel.SYSTEM, ChatRules.classify("Bonzo: Sike"))
+        assertEquals(Verdict.Hide, ChatRules.evaluate("§cBonzo§f: Sike", hide))
+        // Tagées, ces trois lignes-là restent aux Catacombes : "Boss messages" ne doit pas les prendre.
+        assertEquals(Verdict.Hide, ChatRules.evaluate("§e[NPC] §bMort§f: §rGood luck.", hide))
+        assertEquals(Verdict.Hide, ChatRules.evaluate("§c[BOSS] The Watcher§r§f: Ah, you've finally arrived.", hide))
+        assertEquals(Verdict.Hide, ChatRules.evaluate("§c[BOSS] Bonzo§r§f: Sike", hide))
+        // En COMPACT, la phrase garde ses couleurs mais perd l'étiquette de tête.
+        val short = cfg("dungeons")
+        assertEquals(Verdict.Replace("§cThe Watcher§r§f: Go, fight!"),
+            ChatRules.evaluate("§c[BOSS] The Watcher§r§f: Go, fight!", short))
+        assertEquals(Verdict.Replace("§cBonzo§r§f: Sike"),
+            ChatRules.evaluate("§c[BOSS] Bonzo§r§f: Sike", short))
+        // Le §e qui colorait l'étiquette reste devant, sans effet : le nom porte la sienne.
+        assertEquals(Verdict.Replace("§e§bMort§f: §rGood luck."),
+            ChatRules.evaluate("§e[NPC] §bMort§f: §rGood luck.", short))
+        // Hors Catacombes aussi : Arachne parle tagée ou nue, la règle Combat prend les deux.
+        assertEquals(Verdict.Hide, ChatRules.evaluate("§cArachne§f: You dare disturb me?", hide))
+        assertEquals(Verdict.Hide, ChatRules.evaluate("§c[BOSS] Arachne§f: You dare disturb me?", hide))
+        // Un joueur qui porte le nom d'un PNJ garde son rang : il reste un message public.
+        assertEquals(Channel.PUBLIC, ChatRules.classify("[MVP+] Mort: hey"))
+        assertEquals(Channel.PUBLIC, ChatRules.classify("[MVP+] Bonzo: hey"))
     }
 
     @Test fun `foraging compacted`() {
         val c = RuleConfig.DEFAULT
-        assertEquals(Verdict.Replace("§a§lPETALFALL!"),
-            ChatRules.evaluate("§a§lPETALFALL! §r§fYou felled the entire §aTree§f!", c))
+        assertEquals(Verdict.Replace("§c§lTIMBER!"),
+            ChatRules.evaluate("§c§lTIMBER! §r§fYou felled the entire §eHelix Tree§f!", c))
         // Le vert d'Hypixel n'est pas dans la palette vanilla : le compact reprend le sien.
-        assertEquals(Verdict.Replace("§#3BE63B§lPETALFALL!"),
-            ChatRules.evaluate("§#3BE63B§lPETALFALL! §r§fYou felled the entire §#3BE63BTree§f!", c))
+        assertEquals(Verdict.Replace("§#3BE63B§lTIMBER!"),
+            ChatRules.evaluate("§#3BE63B§lTIMBER! §r§fYou felled the entire §#3BE63BMangrove Tree§f!", c))
+        // Celui d'un autre bucheron se replie sur la même ligne.
+        assertEquals(Verdict.Replace("§c§lTIMBER!"),
+            ChatRules.evaluate("§c§lTIMBER! §r§b[MVP§c+§b] Timo §ffelled the entire §aOak Tree§f!", c))
         // L'item garde sa rareté ; sans quantité, pas de "x" qui traîne.
         assertEquals(Verdict.Replace("§6§lFLOOR DROP! §r§fFig Log §7x512"),
             ChatRules.evaluate("§6§lFLOOR DROP! §fYou found Fig Log §7x512 §fon the ground!", c))

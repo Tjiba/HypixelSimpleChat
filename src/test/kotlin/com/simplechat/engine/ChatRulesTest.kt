@@ -17,8 +17,8 @@ class ChatRulesTest {
     // Hypixel colore hors palette vanilla : ces couleurs arrivent en §#RRGGBB, elles doivent
     // disparaître du texte comme les autres, sinon plus aucune règle ne matche la ligne.
     @Test fun `strips custom rgb codes`() {
-        assertEquals("PETALFALL! You felled the entire Tree!",
-            ChatRules.clean("§#3BE63B§lPETALFALL! §r§fYou felled the entire §#3BE63BTree§f!"))
+        assertEquals("TIMBER! You felled the entire Helix Tree!",
+            ChatRules.clean("§c§lTIMBER! §r§fYou felled the entire §eHelix Tree§f!"))
     }
 
     // guild/party ne sont plus HARD_PASS (Task 1 Phase A) : ils seront routés vers
@@ -187,6 +187,35 @@ class ChatRulesTest {
         val c = cfg.copy(customHidePatterns = listOf("hunting for a specific spam"))
         assertEquals(Verdict.Hide,
             ChatRules.evaluate("something hunting for a specific spam here", c))
+    }
+
+    @Test fun `muted player hidden on every player channel`() {
+        val c = cfg.copy(mutedPlayers = listOf("Spammer"))
+        assertEquals(Verdict.Hide, ChatRules.evaluate("Guild > §b[MVP§c+§b] Spammer §7[Member]§f: yo", c))
+        assertEquals(Verdict.Hide, ChatRules.evaluate("Party > §b[MVP§c+§b] Spammer§f: yo", c))
+        assertEquals(Verdict.Hide, ChatRules.evaluate("[221] §b[MVP§c+§b] Spammer§f: yo", c))
+        assert(ChatRules.evaluate("Guild > §b[MVP§c+§b] Foo§f: yo", c) != Verdict.Hide)
+    }
+
+    // Le pseudo relayé par le bridge porte souvent des décorations : le pseudo saisi suffit.
+    @Test fun `muted player hidden through the guild bridge`() {
+        val c = cfg.copy(mutedPlayers = listOf("DianaMommyUwU"))
+        assertEquals(Verdict.Hide,
+            ChatRules.evaluate("Guild > [MVP++] BotName: G > V3 > ✿DianaMommyUwU✿: MDRRR", c))
+    }
+
+    // Les MP passent d'habitude sans être touchés : la sourdine est la seule exception.
+    @Test fun `muted player hidden in whispers both ways`() {
+        val c = cfg.copy(mutedPlayers = listOf("Spammer"))
+        assertEquals(Verdict.Hide, ChatRules.evaluate("From §b[MVP§c+§b] Spammer§f: yo", c))
+        assertEquals(Verdict.Hide, ChatRules.evaluate("To Spammer: yo", c))
+        assertEquals(Verdict.Pass, ChatRules.evaluate("From §b[MVP§c+§b] Foo§f: yo", c))
+    }
+
+    // La sourdine ne dépend pas du mode : vanilla masque aussi.
+    @Test fun `muted player hidden in vanilla mode`() {
+        val c = cfg.copy(mutedPlayers = listOf("Spammer"), guildStyle = cfg.guildStyle.copy(compact = false))
+        assertEquals(Verdict.Hide, ChatRules.evaluate("Guild > §b[MVP§c+§b] Spammer§f: yo", c))
     }
 
     @Test fun `skyhanni-style groups hide`() {

@@ -1,5 +1,6 @@
 package com.simplechat
 
+import com.mojang.brigadier.arguments.StringArgumentType
 import com.simplechat.config.Settings
 import com.simplechat.ui.ConfigScreens
 import com.simplechat.ui.Screens
@@ -41,6 +42,23 @@ object SimpleChatMod : ClientModInitializer {
                             for (line in TreeGiftTotals.report()) player?.sendSystemMessage(Component.literal(line))
                             1
                         })
+                    .then(ClientCommands.literal("mute")
+                        .then(ClientCommands.argument("name", StringArgumentType.word()).executes { ctx ->
+                            muteFeedback(ctx.source.client, StringArgumentType.getString(ctx, "name"), true)
+                            1
+                        })
+                        .executes { ctx ->
+                            val muted = Settings.mutedList()
+                            ctx.source.client.player?.sendSystemMessage(Component.literal(
+                                if (muted.isEmpty()) "§6[§bSimple§fChat§6] §7Nobody is muted"
+                                else "§6[§bSimple§fChat§6] §7Muted: §f" + muted.joinToString("§7, §f")))
+                            1
+                        })
+                    .then(ClientCommands.literal("unmute")
+                        .then(ClientCommands.argument("name", StringArgumentType.word()).executes { ctx ->
+                            muteFeedback(ctx.source.client, StringArgumentType.getString(ctx, "name"), false)
+                            1
+                        }))
                     .then(ClientCommands.literal("debug").executes { ctx ->
                         Debug.enabled = !Debug.enabled
                         val state = if (Debug.enabled) "§aon" else "§coff"
@@ -72,6 +90,14 @@ object SimpleChatMod : ClientModInitializer {
             if (screen != null) Screens.set(client, screen)
             else client.player?.sendSystemMessage(Component.literal("Failed to open the settings screen."))
         }
+    }
+
+    private fun muteFeedback(client: Minecraft, name: String, muted: Boolean) {
+        val changed = Settings.setMuted(name, muted)
+        if (changed) Settings.save()
+        val state = if (muted) "§cmuted" else "§aunmuted"
+        val verb = if (changed) "is now" else "was already"
+        client.player?.sendSystemMessage(Component.literal("§6[§bSimple§fChat§6] §f$name §7$verb $state"))
     }
 
     private fun openConfig(parent: Screen?): Screen? = runCatching {

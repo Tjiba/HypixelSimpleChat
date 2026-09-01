@@ -38,6 +38,7 @@ Master switch off = chat 100% untouched.
 | **Extended history** | Keep up to 2048 messages instead of vanilla's 100. |
 | **Live preview** | Watch your chat change as you tweak the settings. |
 | **Timestamps** | Optional `[HH:MM]` on every line. |
+| **Mute a player** | Hide someone's messages everywhere: public, party, guild, bridge relays and whispers. |
 
 ## Commands
 
@@ -45,6 +46,8 @@ Master switch off = chat 100% untouched.
 |---|---|
 | `/hsc` | Open the settings screen |
 | `/hsc update` | Check for a newer version |
+| `/hsc mute <name>` | Hide everything a player says (`/hsc mute` lists them) |
+| `/hsc unmute <name>` | Let them through again |
 
 Settings are also reachable through **Mod Menu** (26.1), and there's a **Discord** button right in the menu.
 

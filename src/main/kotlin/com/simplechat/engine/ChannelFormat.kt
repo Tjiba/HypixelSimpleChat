@@ -47,6 +47,8 @@ object ChannelFormat {
 
     // En-tête simple de canal (party/officer non-bridge) sur texte nettoyé.
     private val CHANNEL_HEAD = Pattern.compile("^(?:Guild|Officer|Party|G|O|P) > (.+)$")
+    // MP reçu ou envoyé, sur texte nettoyé : "From [MVP+] Foo: yo".
+    private val WHISPER_HEAD = Pattern.compile("^(?:From|To) (.+)$")
 
     fun format(raw: String, channel: Channel, cfg: RuleConfig): List<Seg>? = when (channel) {
         Channel.PUBLIC -> formatPublic(raw, cfg)
@@ -55,9 +57,51 @@ object ChannelFormat {
         else -> null
     }
 
-    private fun formatPublic(raw: String, cfg: RuleConfig): List<Seg>? {
-        val clean = ChatRules.clean(raw)
-        // Niveau [330] puis emblème optionnels (avant le rank), sur texte nettoyé.
+    /** Pseudo de l'auteur d'un message de joueur, sur texte nettoyé (null si l'en-tête ne se lit pas).
+     *  Pour un relais bridge c'est le pseudo affiché, pas le compte du bot. */
+    fun author(clean: String, channel: Channel): String? = when (channel) {
+        Channel.PUBLIC -> nameOf(publicHead(clean).rest)
+        Channel.PARTY -> channelAuthor(clean)
+        Channel.GUILD, Channel.OFFICER -> guildAuthor(clean)
+        Channel.WHISPER -> whisperAuthor(clean)
+        else -> null
+    }
+
+    private fun whisperAuthor(clean: String): String? {
+        val m = WHISPER_HEAD.matcher(clean)
+        if (!m.matches()) return null
+        return nameOf(m.group(1))
+    }
+
+    private fun channelAuthor(clean: String): String? {
+        val m = CHANNEL_HEAD.matcher(clean)
+        if (!m.matches()) return null
+        return nameOf(m.group(1))
+    }
+
+    private fun guildAuthor(clean: String): String? {
+        val m = BRIDGE_HEADER.matcher(clean)
+        if (!m.matches()) return channelAuthor(clean)
+        val payload = m.group(5)
+        if (!hasChannelMarker(payload) && !hasGuildVersionTag(payload)) return channelAuthor(clean)
+        val name = parseBridge(payload)?.name ?: return channelAuthor(clean)
+        return if (name.contains("] ")) nameOf("$name: ") else name
+    }
+
+    /** "[MVP+] Name [Member]: message" -> "Name". */
+    private fun nameOf(head: String): String? {
+        val sep = head.indexOf(": ")
+        if (sep < 0) return null
+        val nameHead = head.substring(0, sep)
+        val core = GUILD_RANK_SUFFIX.find(nameHead)?.groupValues?.get(1) ?: nameHead
+        val rankEnd = core.indexOf("] ")
+        return (if (rankEnd >= 0) core.substring(rankEnd + 2) else core).takeIf { it.isNotEmpty() }
+    }
+
+    /** En-tête d'un message public : niveau [330] puis emblème optionnels, avant le rank. */
+    private data class PublicHead(val level: String?, val emblem: String?, val rest: String)
+
+    private fun publicHead(clean: String): PublicHead {
         var rest = clean
         var level: String? = null
         val lm = LEVEL_HEAD.matcher(rest)
@@ -70,6 +114,12 @@ object ChannelFormat {
             val sp = rest.indexOf(' ')
             if (sp > 0) { emblem = rest.substring(0, sp); rest = rest.substring(sp + 1) }
         }
+        return PublicHead(level, emblem, rest)
+    }
+
+    private fun formatPublic(raw: String, cfg: RuleConfig): List<Seg>? {
+        val clean = ChatRules.clean(raw)
+        val (level, emblem, rest) = publicHead(clean)
 
         val sep = rest.indexOf(": ")
         if (sep < 0) return null
@@ -135,9 +185,10 @@ object ChannelFormat {
         return channelBody(prefix, prefixColor, cfg.guildStyle, raw, head.group(1), cfg.self)
     }
 
-    // Formatage d'un relais bridge Discord : "prefix > alias/version > name : message".
-    // Le nom passe par rankNameSegs (rank Hypixel + rank guilde + couleur du rank, mêmes toggles).
-    private fun bridgeSegs(raw: String, payload: String, prefix: String, prefixColor: Int, cfg: RuleConfig): List<Seg>? {
+    /** Relais bridge découpé : tag version, pseudo affiché, message. */
+    private data class BridgeMsg(val version: String?, val name: String, val message: String)
+
+    private fun parseBridge(payload: String): BridgeMsg? {
         var cleaned = stripLeadingNonVersionTag(payload)
         var guildVersion: String? = null
         val vm = GUILD_VERSION_TAG.matcher(cleaned)
@@ -163,6 +214,13 @@ object ChannelFormat {
             message = cleaned.substring(sep + 3).trim()
         }
         if (discord.isEmpty() || message.isEmpty()) return null
+        return BridgeMsg(guildVersion, discord, message)
+    }
+
+    // Formatage d'un relais bridge Discord : "prefix > alias/version > name : message".
+    // Le nom passe par rankNameSegs (rank Hypixel + rank guilde + couleur du rank, mêmes toggles).
+    private fun bridgeSegs(raw: String, payload: String, prefix: String, prefixColor: Int, cfg: RuleConfig): List<Seg>? {
+        val (guildVersion, discord, message) = parseBridge(payload) ?: return null
 
         val useVersion = cfg.bridge.versionTagsEnabled && !guildVersion.isNullOrBlank()
         val versionOrAlias = if (useVersion) guildVersion!! else cfg.bridge.botAlias
