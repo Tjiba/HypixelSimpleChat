@@ -4,16 +4,17 @@ import com.simplechat.engine.RuleAction
 import com.simplechat.rules.Category
 import com.simplechat.rules.Fmt
 import com.simplechat.rules.Group
+import com.simplechat.rules.Section
 import com.simplechat.rules.rules
 
 /** Gains : sacs, loot share, GEXP, coffres rares. */
 object Economy {
 
-    val SACKS = Group("sacks", "Sacks notifications", Category.SKYBLOCK, "ECONOMY", RuleAction.GREY)
-    val LOOT_SHARE = Group("lootShare", "Loot share", Category.SKYBLOCK, "ECONOMY", RuleAction.COMPACT,
+    val SACKS = Group("sacks", "Sacks notifications", Category.SKYBLOCK, Section.DROPS, RuleAction.GREY)
+    val LOOT_SHARE = Group("lootShare", "Loot share", Category.SKYBLOCK, Section.DROPS, RuleAction.COMPACT,
         description = "Loot earned by assisting someone", split = false)
-    val GEXP = Group("gexp", "Guild EXP earned", Category.SKYBLOCK, "ECONOMY", RuleAction.COMPACT)
-    val RARE_REWARD = Group("rareReward", "Rare reward (chest)", Category.SKYBLOCK, "ECONOMY", RuleAction.COMPACT)
+    val GEXP = Group("gexp", "Guild EXP earned", Category.SKYBLOCK, Section.ECONOMY, RuleAction.COMPACT)
+    val RARE_REWARD = Group("rareReward", "Rare reward (chest)", Category.SKYBLOCK, Section.DROPS, RuleAction.COMPACT)
 
     val rules =
         rules(SACKS) {

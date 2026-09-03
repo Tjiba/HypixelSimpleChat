@@ -3,6 +3,7 @@ package com.simplechat.rules.common
 import com.simplechat.engine.RuleAction
 import com.simplechat.rules.Category
 import com.simplechat.rules.Group
+import com.simplechat.rules.Section
 import com.simplechat.rules.rules
 
 /** Refus du serveur : trop vite, en combat, mauvais outil. */
@@ -12,7 +13,7 @@ object Warnings {
         id = "warnings",
         title = "Warnings",
         category = Category.SKYBLOCK,
-        section = "COMBAT",
+        section = Section.COMBAT,
         default = RuleAction.HIDE,
         description = "Too fast, can't use in combat, tree regenerating, wrong tool",
     )

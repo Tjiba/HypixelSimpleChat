@@ -800,8 +800,15 @@ class MenuScreen(private val parent: Screen?) : Screen(
         for (id in NAV_ORDER) if (id == null || id in available) order.add(id)
         for (id in available) if (id !in NAV_ORDER) order.add(id) // catégorie non listée → en fin
         val res = ArrayList<Rect>()
+        // Le tout-venant en haut ; Lobby et System, qu'on règle une fois, collés en bas.
         var y = regionTop()
-        for (id in order) {
+        for (id in order.filter { it !in NAV_BOTTOM }) {
+            res.add(Rect(id, id ?: "General", sideX1(), y, sideX2(), y + MenuTheme.NAV_H))
+            y += MenuTheme.NAV_H + 3
+        }
+        val bottom = order.filter { it in NAV_BOTTOM }
+        y = regionBottom() - bottom.size * (MenuTheme.NAV_H + 3) + 3
+        for (id in bottom) {
             res.add(Rect(id, id ?: "General", sideX1(), y, sideX2(), y + MenuTheme.NAV_H))
             y += MenuTheme.NAV_H + 3
         }
@@ -850,6 +857,8 @@ class MenuScreen(private val parent: Screen?) : Screen(
 
         // Ordre des catégories dans la sidebar (null = General).
         private val NAV_ORDER = listOf<String?>(null, "Public Chat", "Party Chat", "Guild Chat", "SkyBlock", "Lobby", "System")
+        // Celles-ci s'accrochent au bas de la sidebar, à l'écart des catégories du quotidien.
+        private val NAV_BOTTOM = setOf<String?>("Lobby", "System")
 
         // Sections d'une catégorie SANS onglets (header par section ; titre vide = pas de header).
         private val FLAT_SECTIONS: Map<String?, LinkedHashMap<String, List<String>>> = mapOf(

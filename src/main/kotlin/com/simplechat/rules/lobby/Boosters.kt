@@ -4,15 +4,16 @@ import com.simplechat.engine.RuleAction
 import com.simplechat.rules.Category
 import com.simplechat.rules.Fmt
 import com.simplechat.rules.Group
+import com.simplechat.rules.Section
 import com.simplechat.rules.rules
 
 /** Boosters, générosité, ticket de temps de jeu, lien de récompense. */
 object Boosters {
 
-    val BOOSTER = Group("boosterActivated", "Booster activated", Category.LOBBY, "", RuleAction.COMPACT)
-    val GENEROSITY = Group("radiatingGenerosity", "Radiating generosity", Category.LOBBY, "", RuleAction.COMPACT)
-    val PLAYTIME = Group("playtimeTicket", "Playtime ticket", Category.LOBBY, "", RuleAction.COMPACT)
-    val REWARD_LINK = Group("rewardLink", "Reward website link", Category.LOBBY, "", RuleAction.COMPACT)
+    val BOOSTER = Group("boosterActivated", "Booster activated", Category.LOBBY, Section.NONE, RuleAction.COMPACT)
+    val GENEROSITY = Group("radiatingGenerosity", "Radiating generosity", Category.LOBBY, Section.NONE, RuleAction.COMPACT)
+    val PLAYTIME = Group("playtimeTicket", "Playtime ticket", Category.LOBBY, Section.NONE, RuleAction.COMPACT)
+    val REWARD_LINK = Group("rewardLink", "Reward website link", Category.LOBBY, Section.NONE, RuleAction.COMPACT)
 
     val rules =
         rules(BOOSTER) {

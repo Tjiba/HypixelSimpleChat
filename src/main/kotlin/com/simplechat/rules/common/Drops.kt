@@ -4,14 +4,15 @@ import com.simplechat.engine.RuleAction
 import com.simplechat.rules.Category
 import com.simplechat.rules.Fmt
 import com.simplechat.rules.Group
+import com.simplechat.rules.Section
 import com.simplechat.rules.rules
 
 /** Essences, bonus d'XP, rappels de récompenses, radio, charmes. */
 object Drops {
 
-    val REWARDS = Group("rewards", "Rewards / drops", Category.SKYBLOCK, "WORLD & EVENTS", RuleAction.HIDE,
+    val REWARDS = Group("rewards", "Rewards / drops", Category.SKYBLOCK, Section.DROPS, RuleAction.HIDE,
         description = "Essence finds, Event EXP bonuses, unclaimed rewards, radio signal, shard charms, expired combo")
-    val SKYBLOCK_XP = Group("skyblockXp", "SkyBlock XP gains", Category.SKYBLOCK, "WORLD & EVENTS", RuleAction.COMPACT,
+    val SKYBLOCK_XP = Group("skyblockXp", "SkyBlock XP gains", Category.SKYBLOCK, Section.DROPS, RuleAction.COMPACT,
         description = "Every '+N SkyBlock XP' line, shortened but never hidden")
 
     /**

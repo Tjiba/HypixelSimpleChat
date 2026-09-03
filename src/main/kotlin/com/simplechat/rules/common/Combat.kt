@@ -5,17 +5,20 @@ import com.simplechat.engine.RuleAction
 import com.simplechat.rules.Category
 import com.simplechat.rules.Fmt
 import com.simplechat.rules.Group
+import com.simplechat.rules.Section
 import com.simplechat.rules.rules
 
 /** Lignes de boss et chiffres de dégâts, valables sur toutes les îles. */
 object Combat {
 
-    val BOSS = Group("boss", "Boss messages", Category.SKYBLOCK, "COMBAT", RuleAction.HIDE,
+    val BOSS = Group("boss", "Boss messages", Category.SKYBLOCK, Section.COMBAT, RuleAction.HIDE,
         description = "[BOSS] / [STATUE] dialog, '… has spawned!', 'ARACHNE DOWN!' shouts")
-    val DAMAGE = Group("damageSpam", "Damage numbers", Category.SKYBLOCK, "COMBAT", RuleAction.GREY)
-    val KILL_COMBO = Group("killCombo", "Kill combo", Category.SKYBLOCK, "COMBAT", RuleAction.GREY)
-    val MOB_ABILITY = Group("mobAbility", "Mob abilities", Category.SKYBLOCK, "COMBAT", RuleAction.GREY)
-    val COMBAT_HEAL = Group("combat", "Combat / heal", Category.SKYBLOCK, "COMBAT", RuleAction.HIDE,
+    val DAMAGE = Group("damageSpam", "Damage numbers", Category.SKYBLOCK, Section.COMBAT, RuleAction.GREY)
+    val KILL_COMBO = Group("killCombo", "Kill combo", Category.SKYBLOCK, Section.COMBAT, RuleAction.GREY)
+    val MOB_ABILITY = Group("mobAbility", "Mob abilities", Category.SKYBLOCK, Section.COMBAT, RuleAction.GREY)
+    val PLAYER_DEATH = Group("playerDeath", "Player deaths", Category.SKYBLOCK, Section.COMBAT, RuleAction.GREY,
+        description = "'☠ Player was killed by …' — other players only, yours stays")
+    val COMBAT_HEAL = Group("combat", "Combat / heal", Category.SKYBLOCK, Section.COMBAT, RuleAction.HIDE,
         description = "Damage taken, healing, buffs, tethers, orbs")
 
     val rules =
@@ -46,6 +49,13 @@ object Combat {
                 "^.+ used (.+?) on you hitting you for ([0-9,.]+) damage",
                 compact = { "§c${it[1]} §7· §f-${Fmt.shortNum(it[2])}" },
                 sample = "The Zombie Soldier used Slam on you hitting you for 1,200 damage")
+        } +
+        rules(PLAYER_DEATH) {
+            // Ta propre mort ("☠ You died.") n'est pas prise : c'est une information, pas du bruit.
+            rule("player-death", RuleAction.GREY,
+                "^☠ (?!You )(\\S+) (.+?)\\.?$",
+                compact = { "§c☠ ${Fmt.rawSpan(it.raw, it[1], "§7")} §8· §7${it[2]}" },
+                sample = "§c ☠ §r§7Timo §r§7was killed by §r§cKuudra§r§7.")
         }
 
     /** Le tout-venant du combat : un seul réglage, évalué après les règles précises. */

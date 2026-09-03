@@ -6,6 +6,7 @@ import com.simplechat.engine.RuleAction
 import com.simplechat.engine.Verdict
 import com.simplechat.rules.Category
 import com.simplechat.rules.Group
+import com.simplechat.rules.Section
 import com.simplechat.rules.Registry
 import com.simplechat.rules.Rule
 import com.simplechat.rules.rules
@@ -17,7 +18,7 @@ object Slayer {
         id = "slayer",
         title = "Slayer",
         category = Category.SKYBLOCK,
-        section = "COMBAT",
+        section = Section.COMBAT,
         default = RuleAction.HIDE,
         description = "Quest started/complete, slay lines",
     )

@@ -4,6 +4,8 @@ import com.simplechat.config.RuleSettings
 import com.simplechat.rules.Category
 import com.simplechat.rules.Group
 import com.simplechat.rules.Registry
+import com.simplechat.rules.Section
+import com.simplechat.rules.Tab
 
 /**
  * Plan du menu, construit depuis le registre de règles : onglet haut → section → ids de réglages.
@@ -11,18 +13,20 @@ import com.simplechat.rules.Registry
  */
 object MenuLayout {
 
-    /** Ordre d'affichage des sections de l'onglet General ; une section inconnue passe en fin. */
-    private val SECTION_ORDER = listOf("GENERAL", "WORLD & EVENTS", "COMBAT", "ECONOMY")
-
-    /** Réglages qui ne viennent pas d'une règle : placés à la main, en tête de leur bloc.
-     *  Clé = nom de section, d'onglet, ou de catégorie sans section (Lobby / System). */
-    private val EXTRAS = mapOf(
-        "GENERAL" to listOf("enabled", "customPatterns"),
-        "WORLD & EVENTS" to listOf("hoppity"),
-        "ECONOMY" to listOf("bazaarItemsColor", "bazaarSalesColor"),
-        "Dungeons" to listOf("soloClass"),
-        "Lobby" to listOf("enabled"),
-        "System" to listOf("enabled"),
+    // Réglages qui ne viennent pas d'une règle : placés à la main, en tête de leur bloc. Une map
+    // par endroit où on peut en poser — sections de l'onglet General, onglets, catégories sans
+    // section — pour qu'une clé désigne toujours la même chose.
+    private val GENERAL_EXTRAS: Map<Section, List<String>> = mapOf(
+        Section.GENERAL to listOf("enabled", "customPatterns"),
+        Section.WORLD to listOf("hoppity"),
+        Section.ECONOMY to listOf("bazaarItemsColor", "bazaarSalesColor"),
+    )
+    private val TAB_EXTRAS: Map<Tab, List<String>> = mapOf(
+        Tab.DUNGEONS to listOf("soloClass"),
+    )
+    private val CATEGORY_EXTRAS: Map<Category, List<String>> = mapOf(
+        Category.LOBBY to listOf("enabled"),
+        Category.SYSTEM to listOf("enabled"),
     )
 
     val views: Map<String?, LinkedHashMap<String, LinkedHashMap<String, List<String>>>> = build()
@@ -54,23 +58,27 @@ object MenuLayout {
 
         val bySection = skyblock.filter { it.tab == null }.groupBy { it.section }
         val general = LinkedHashMap<String, List<String>>()
-        for (section in SECTION_ORDER + bySection.keys.filter { it !in SECTION_ORDER }) {
-            val ids = EXTRAS[section].orEmpty() + bySection[section].orEmpty().flatMap { withPhrases(it) }
-            if (ids.isNotEmpty()) general[section] = ids
+        for (section in Section.entries) {
+            val ids = GENERAL_EXTRAS[section].orEmpty() + bySection[section].orEmpty().flatMap { withPhrases(it) }
+            if (ids.isNotEmpty()) general[section.title] = ids
         }
 
         // Un contenu = un onglet. Une seule section dedans : pas d'en-tête, la page ne parle que
-        // d'elle. Plusieurs : en-têtes, dans l'ordre de déclaration des groupes.
+        // d'elle. Plusieurs : en-têtes, dans l'ordre de déclaration de Section.
         val tabs = linkedMapOf("General" to general)
-        for ((tab, groups) in skyblock.filter { it.tab != null }.groupBy { it.tab!! }) {
-            val extras = EXTRAS[tab].orEmpty()
+        for (tab in Tab.entries) {
+            val groups = skyblock.filter { it.tab == tab }
+            if (groups.isEmpty()) continue
+            val extras = TAB_EXTRAS[tab].orEmpty()
             val bySection = groups.groupBy { it.section }
             val page = LinkedHashMap<String, List<String>>()
-            if (bySection.size == 1) page[""] = extras + groups.flatMap { withPhrases(it) }
-            else bySection.entries.forEachIndexed { i, (section, inSection) ->
-                page[section] = (if (i == 0) extras else emptyList()) + inSection.flatMap { withPhrases(it) }
+            val sections = Section.entries.filter { it in bySection }
+            if (sections.size == 1) page[""] = extras + groups.flatMap { withPhrases(it) }
+            else sections.forEachIndexed { i, section ->
+                page[section.title] = (if (i == 0) extras else emptyList()) +
+                    bySection.getValue(section).flatMap { withPhrases(it) }
             }
-            tabs[tab] = page
+            tabs[tab.title] = page
         }
 
         val views = linkedMapOf<String?, LinkedHashMap<String, LinkedHashMap<String, List<String>>>>(
@@ -82,9 +90,8 @@ object MenuLayout {
         for (category in listOf(Category.LOBBY, Category.SYSTEM)) {
             val groups = Registry.groups.filter { it.category == category }
             if (groups.isEmpty()) continue
-            val id = RuleSettings.configId(category)
-            val ids = EXTRAS[id].orEmpty() + groups.flatMap { withPhrases(it) }
-            views[id] = linkedMapOf("General" to linkedMapOf("" to ids))
+            val ids = CATEGORY_EXTRAS[category].orEmpty() + groups.flatMap { withPhrases(it) }
+            views[RuleSettings.configId(category)] = linkedMapOf("General" to linkedMapOf("" to ids))
         }
 
         return views

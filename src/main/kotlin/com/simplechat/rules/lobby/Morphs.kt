@@ -3,12 +3,13 @@ package com.simplechat.rules.lobby
 import com.simplechat.engine.RuleAction
 import com.simplechat.rules.Category
 import com.simplechat.rules.Group
+import com.simplechat.rules.Section
 import com.simplechat.rules.rules
 
 /** Morphs et garde-robe des lobbies. Une seule règle pour cinq tournures différentes. */
 object Morphs {
 
-    val MORPH = Group("morphWardrobe", "Morph / wardrobe", Category.LOBBY, "", RuleAction.COMPACT)
+    val MORPH = Group("morphWardrobe", "Morph / wardrobe", Category.LOBBY, Section.NONE, RuleAction.COMPACT)
 
     val rules = rules(MORPH) {
         rule("morph-wardrobe", RuleAction.COMPACT,

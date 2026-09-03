@@ -3,13 +3,14 @@ package com.simplechat.rules.system
 import com.simplechat.engine.RuleAction
 import com.simplechat.rules.Category
 import com.simplechat.rules.Group
+import com.simplechat.rules.Section
 import com.simplechat.rules.rules
 
 /** Lignes techniques du serveur : identifiant de profil, routage. */
 object Server {
 
-    val PROFILE_ID = Group("profileId", "Profile ID line", Category.SYSTEM, "", RuleAction.COMPACT)
-    val ROUTING = Group("serverRouting", "Server routing / warping", Category.SYSTEM, "", RuleAction.COMPACT,
+    val PROFILE_ID = Group("profileId", "Profile ID line", Category.SYSTEM, Section.NONE, RuleAction.COMPACT)
+    val ROUTING = Group("serverRouting", "Server routing / warping", Category.SYSTEM, Section.NONE, RuleAction.COMPACT,
         description = "OFF = as-is · GREY = dimmed · COMPACT = reformat · COMPACT_GREY = reformat + dimmed · HIDE = remove")
 
     val rules =

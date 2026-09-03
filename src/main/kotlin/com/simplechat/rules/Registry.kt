@@ -17,6 +17,7 @@ import com.simplechat.rules.common.Slayer
 import com.simplechat.rules.common.Warnings
 import com.simplechat.rules.islands.Dungeons
 import com.simplechat.rules.islands.Foraging
+import com.simplechat.rules.islands.Mining
 import com.simplechat.rules.lobby.Boosters
 import com.simplechat.rules.lobby.Joins
 import com.simplechat.rules.lobby.Morphs
@@ -39,15 +40,17 @@ object Registry {
         Morphs.MORPH,
         Npc.NPC_DIALOG, Npc.ABIPHONE,
         Pets.PET_SPAWN, Pets.PET_SUMMON, Pets.AUTOPET,
-        Combat.BOSS, Combat.DAMAGE, Combat.KILL_COMBO, Combat.MOB_ABILITY,
+        Combat.BOSS, Combat.DAMAGE, Combat.KILL_COMBO, Combat.MOB_ABILITY, Combat.PLAYER_DEATH,
         Economy.SACKS, Economy.LOOT_SHARE, Economy.GEXP, Economy.RARE_REWARD,
         Server.PROFILE_ID, Server.ROUTING,
         Transitions.TRANSITIONS, Notifications.NOTIFICATIONS, Dungeons.DUNGEONS,
-        Foraging.TREE_GIFT, Foraging.FLOOR_DROP, Foraging.TIMBER,
+        Foraging.TREE_GIFT, Foraging.FLOOR_DROP, Foraging.TIMBER, Foraging.DAILY_BUFF,
         Foraging.TORRHUS, Foraging.HIVE,
         Foraging.APPEARED, Foraging.SHARDS, Foraging.HUNTING, Foraging.HONEY_TREE,
         Foraging.SAFARI_ENTRY, Foraging.SAFARI_CAPTURE, Foraging.SAFARI_MANAGER, Foraging.SAFARI_SUMMARY,
         Foraging.SAFARI_MILESTONES, Foraging.SAFARI_DISABLED, Foraging.BIRDFEEDER,
+        Mining.CHEST_SUMMARY, Mining.CHEST, Mining.TOOL, Mining.SKY_MALL,
+        Mining.CRYSTAL, Mining.DETECTOR, Mining.KEEPER, Mining.AUTOMATON,
         Abilities.ABILITIES, Combat.COMBAT_HEAL, Drops.SKYBLOCK_XP, Drops.REWARDS,
         Misc.MISC, Bazaar.BAZAAR, Slayer.SLAYER, Events.EVENTS, Warnings.WARNINGS,
     )
@@ -59,8 +62,10 @@ object Registry {
             Joins.rules + Boosters.rules + Rewards.rules + Morphs.rules +
             Pets.rules +
             // Avant Combat : son générique "… DOWN!" avalerait le "BEEHEEMOTH DOWN!" de Torrhus.
-            // Avant Npc : ses PNJ nommés ont leur propre réglage, "[NPC] " générique les avalerait.
-            Foraging.rules + Dungeons.npc + Npc.rules + Combat.rules + Economy.rules + Server.rules +
+            // Avant Npc : leurs PNJ nommés — safari, Keepers, automate — ont leur propre réglage,
+            // le "[NPC] " générique les avalerait.
+            Foraging.rules + Mining.rules + Dungeons.npc + Npc.rules +
+            Combat.rules + Economy.rules + Server.rules +
             // Groupes de spam : un réglage pour plusieurs messages.
             Transitions.rules + Notifications.rules + Dungeons.rules +
             Abilities.rules + Combat.spam + Drops.rules +

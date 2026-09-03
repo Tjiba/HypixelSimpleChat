@@ -4,12 +4,13 @@ import com.simplechat.engine.RuleAction
 import com.simplechat.rules.Category
 import com.simplechat.rules.Fmt
 import com.simplechat.rules.Group
+import com.simplechat.rules.Section
 import com.simplechat.rules.rules
 
 /** Notifications de fond : pourboires, intérêts, captures, succès. */
 object Notifications {
 
-    val NOTIFICATIONS = Group("notifications", "Notifications", Category.LOBBY, "", RuleAction.HIDE,
+    val NOTIFICATIONS = Group("notifications", "Notifications", Category.LOBBY, Section.NONE, RuleAction.HIDE,
         description = "Tipped players, plasmaflux, bank interest, hunting catches, achievements, unclaimed rewards reminder")
 
     val rules = rules(NOTIFICATIONS) {

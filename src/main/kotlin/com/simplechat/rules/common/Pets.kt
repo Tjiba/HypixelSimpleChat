@@ -5,15 +5,16 @@ import com.simplechat.engine.RuleAction
 import com.simplechat.rules.Category
 import com.simplechat.rules.Fmt
 import com.simplechat.rules.Group
+import com.simplechat.rules.Section
 import com.simplechat.rules.rules
 
 /** Invocation de familiers : même logique +/- côté lobby et côté SkyBlock. */
 object Pets {
 
-    val PET_SPAWN = Group("petSpawn", "Pet spawn/despawn", Category.LOBBY, "", RuleAction.COMPACT)
-    val PET_SUMMON = Group("petSummon", "Pet summon/despawn", Category.SKYBLOCK, "GENERAL", RuleAction.COMPACT,
+    val PET_SPAWN = Group("petSpawn", "Pet spawn/despawn", Category.LOBBY, Section.NONE, RuleAction.COMPACT)
+    val PET_SUMMON = Group("petSummon", "Pet summon/despawn", Category.SKYBLOCK, Section.GENERAL, RuleAction.COMPACT,
         description = "'You summoned your …', compact keeps the pet's rarity color")
-    val AUTOPET = Group("autopet", "Autopet equip", Category.SKYBLOCK, "GENERAL", RuleAction.COMPACT,
+    val AUTOPET = Group("autopet", "Autopet equip", Category.SKYBLOCK, Section.GENERAL, RuleAction.COMPACT,
         description = "'Autopet equipped your [Lvl 100] …', compact drops the VIEW RULE tail")
 
     val rules =

@@ -4,67 +4,70 @@ import com.simplechat.engine.RuleAction
 import com.simplechat.rules.Category
 import com.simplechat.rules.Fmt
 import com.simplechat.rules.Group
+import com.simplechat.rules.Section
+import com.simplechat.rules.Tab
 import com.simplechat.rules.rules
 
 /** Foraging : arbres, sève, drops de bûcheronnage. General d'abord, puis une zone par sous-catégorie. */
 object Foraging {
 
     // Un groupe par message : chacun sa ligne de menu, sans barre ni repliage.
-    val TREE_GIFT = Group("foraging-tree-gift", "Tree gift", Category.SKYBLOCK, "GENERAL", RuleAction.COMPACT,
+    val TREE_GIFT = Group("foraging-tree-gift", "Tree gift", Category.SKYBLOCK, Section.GENERAL, RuleAction.COMPACT,
         description = "Participation and rewards of a felled tree",
-        tab = "Foraging")
-    val FLOOR_DROP = Group("foraging-floor-drop", "Floor drop", Category.SKYBLOCK, "GENERAL", RuleAction.COMPACT,
+        tab = Tab.FORAGING)
+    val FLOOR_DROP = Group("foraging-floor-drop", "Floor drop", Category.SKYBLOCK, Section.GENERAL, RuleAction.COMPACT,
         description = "Logs and drops found on the ground",
-        tab = "Foraging")
+        tab = Tab.FORAGING)
     // Hypixel a fondu Petalfall et Woodpecker dans Timber : un seul cri pour tous les arbres.
-    val TIMBER = Group("foraging-timber", "Timber", Category.SKYBLOCK, "GENERAL", RuleAction.COMPACT,
+    val TIMBER = Group("foraging-timber", "Timber", Category.SKYBLOCK, Section.GENERAL, RuleAction.COMPACT,
         description = "A tree felled whole, by you or by someone else",
-        tab = "Foraging")
-    val HONEY_TREE = Group("foraging-honey-tree", "Honey tree", Category.SKYBLOCK, "HUNTING", RuleAction.COMPACT,
+        tab = Tab.FORAGING)
+    // Lottery et Beekeeper annoncent leur buff du jour en trois lignes chacun : un réglage pour tout.
+    val DAILY_BUFF = Group("foraging-daily-buff", "Daily buffs", Category.SKYBLOCK, Section.GENERAL, RuleAction.COMPACT,
+        description = "Lottery and Beekeeper buffs of the day, merged into one line each",
+        tab = Tab.FORAGING, split = false)
+    val HONEY_TREE = Group("foraging-honey-tree", "Honey tree", Category.SKYBLOCK, Section.HUNTING, RuleAction.COMPACT,
         description = "A mob comes out of a honey tree",
-        tab = "Foraging")
-    val APPEARED = Group("foraging-appeared", "Mob appeared", Category.SKYBLOCK, "HUNTING", RuleAction.COMPACT,
+        tab = Tab.FORAGING)
+    val APPEARED = Group("foraging-appeared", "Mob appeared", Category.SKYBLOCK, Section.HUNTING, RuleAction.COMPACT,
         description = "Any other mob showing up",
-        tab = "Foraging")
-    val SHARDS = Group("foraging-shards", "Caught shards", Category.SKYBLOCK, "HUNTING", RuleAction.COMPACT,
+        tab = Tab.FORAGING)
+    val SHARDS = Group("foraging-shards", "Caught shards", Category.SKYBLOCK, Section.HUNTING, RuleAction.COMPACT,
         description = "Shards dropped by a hunted mob",
-        tab = "Foraging")
-    val HUNTING = Group("foraging-hunting", "Escaped mobs", Category.SKYBLOCK, "HUNTING", RuleAction.COMPACT,
+        tab = Tab.FORAGING)
+    val HUNTING = Group("foraging-hunting", "Escaped mobs", Category.SKYBLOCK, Section.HUNTING, RuleAction.COMPACT,
         description = "Mobs lost on any zone, capsule included",
-        tab = "Foraging", split = false)
-    val BIRDFEEDER = Group("foraging-birdfeeder", "Birdfeeder", Category.SKYBLOCK, "SAFARI", RuleAction.COMPACT,
+        tab = Tab.FORAGING, split = false)
+    val BIRDFEEDER = Group("foraging-birdfeeder", "Birdfeeder", Category.SKYBLOCK, Section.SAFARI, RuleAction.COMPACT,
         description = "Birds attracted by the food you deposit",
-        tab = "Foraging")
-    val SAFARI_ENTRY = Group("foraging-safari-entry", "Safari entry", Category.SKYBLOCK, "SAFARI", RuleAction.COMPACT,
+        tab = Tab.FORAGING)
+    val SAFARI_ENTRY = Group("foraging-safari-entry", "Safari entry", Category.SKYBLOCK, Section.SAFARI, RuleAction.COMPACT,
         description = "Players entering the Critter Safari",
-        tab = "Foraging", split = false)
-    val SAFARI_CAPTURE = Group("foraging-safari-capture", "Capture", Category.SKYBLOCK, "SAFARI", RuleAction.COMPACT,
+        tab = Tab.FORAGING, split = false)
+    val SAFARI_CAPTURE = Group("foraging-safari-capture", "Capture", Category.SKYBLOCK, Section.SAFARI, RuleAction.COMPACT,
         description = "Capsule thrown at a critter, and what it caught",
-        tab = "Foraging", split = false)
-    val SAFARI_MANAGER = Group("foraging-safari-manager", "Safari staff", Category.SKYBLOCK, "SAFARI", RuleAction.HIDE,
+        tab = Tab.FORAGING, split = false)
+    val SAFARI_MANAGER = Group("foraging-safari-manager", "Safari staff", Category.SKYBLOCK, Section.SAFARI, RuleAction.HIDE,
         description = "Manager and receptionist dialog, no information",
-        tab = "Foraging", split = false)
+        tab = Tab.FORAGING, split = false)
     // Le récap est fusionné hors du registre (sept messages en un) : cette règle porte le réglage
     // et l'aperçu, le travail est fait par SafariSummary avant l'évaluation.
-    val SAFARI_SUMMARY = Group("foraging-safari-summary", "Safari summary", Category.SKYBLOCK, "SAFARI", RuleAction.COMPACT,
+    val SAFARI_SUMMARY = Group("foraging-safari-summary", "Safari summary", Category.SKYBLOCK, Section.SAFARI, RuleAction.COMPACT,
         description = "End-of-run rewards, merged into one line",
-        tab = "Foraging")
-    val SAFARI_MILESTONES = Group("foraging-safari-milestones", "Safari milestones", Category.SKYBLOCK, "SAFARI", RuleAction.COMPACT,
+        tab = Tab.FORAGING)
+    val SAFARI_MILESTONES = Group("foraging-safari-milestones", "Safari milestones", Category.SKYBLOCK, Section.SAFARI, RuleAction.COMPACT,
         description = "Unclaimed milestones reminder",
-        tab = "Foraging")
-    val SAFARI_DISABLED = Group("foraging-safari-disabled", "Feature disabled", Category.SKYBLOCK, "SAFARI", RuleAction.GREY,
+        tab = Tab.FORAGING)
+    val SAFARI_DISABLED = Group("foraging-safari-disabled", "Feature disabled", Category.SKYBLOCK, Section.SAFARI, RuleAction.GREY,
         description = "What the safari forbids",
-        tab = "Foraging")
-    val GALATEA = Group("foraging-galatea", "Trees", Category.SKYBLOCK, "GALATEA", RuleAction.HIDE,
-        description = "Trees, sap, foraging drops",
-        tab = "Foraging")
+        tab = Tab.FORAGING)
     // Le Beeheemoth est un seul événement raconté en plusieurs lignes : un réglage pour le tout.
-    val TORRHUS = Group("foraging-torrhus", "Beeheemoth", Category.SKYBLOCK, "TORRHUS", RuleAction.COMPACT,
+    val TORRHUS = Group("foraging-torrhus", "Beeheemoth", Category.SKYBLOCK, Section.TORRHUS, RuleAction.COMPACT,
         description = "Spawn, progress, down",
-        tab = "Foraging", split = false)
-    val HIVE = Group("foraging-hive", "Hive", Category.SKYBLOCK, "TORRHUS", RuleAction.COMPACT,
+        tab = Tab.FORAGING, split = false)
+    val HIVE = Group("foraging-hive", "Hive", Category.SKYBLOCK, Section.TORRHUS, RuleAction.COMPACT,
         description = "Honeyhive search, loot, angry Honeybuzz",
-        tab = "Foraging", split = false)
+        tab = Tab.FORAGING, split = false)
 
     val rules =
         rules(TREE_GIFT) {
@@ -97,6 +100,40 @@ object Foraging {
                 "^TIMBER! (?:.+?) felled the entire (?:.+)!",
                 compact = { "${Fmt.rawColor(it.raw, "TIMBER!", "§c")}§lTIMBER!" },
                 sample = "§c§lTIMBER! §r§fYou felled the entire §eHelix Tree§f!")
+        } +
+        rules(DAILY_BUFF) {
+            // Seule la ligne du buff porte une information : les deux autres se replient dessus.
+            // Elle ne nomme pas son système, c'est le buff lui-même qui dit de qui il vient.
+            rule("lottery-new-day", RuleAction.COMPACT,
+                "^New day! Your Lottery buff changed!",
+                compact = { "" },
+                sample = "§bNew day! §r§eYour §r§2Lottery §r§ebuff changed!",
+                title = "Lottery · new day")
+            rule("lottery-buff", RuleAction.COMPACT,
+                "^New buff: (?:Gain )?(.+ (?:Fig Fortune|Mangrove Fortune|Helix Fortune|Sweep))\\.$",
+                compact = { "§2☀ Lottery §8· ${Fmt.rawSpan(it.raw, it[1], "§a")}" },
+                sample = "§eNew buff: §r§aGain §r§6+50 Fig Fortune§r§a.",
+                title = "Lottery · buff")
+            rule("lottery-toggle", RuleAction.COMPACT,
+                "^You can disable this messaging by toggling Lottery in your /hotf!",
+                compact = { "" },
+                sample = "§8§oYou can disable this messaging by toggling Lottery in your /hotf!",
+                title = "Lottery · toggle hint")
+            rule("beekeeper-new-day", RuleAction.COMPACT,
+                "^New day! Your Beekeeper buff changed!",
+                compact = { "" },
+                sample = "§bNew day! §r§eYour §r§2Beekeeper §r§ebuff changed!",
+                title = "Beekeeper · new day")
+            rule("beekeeper-buff", RuleAction.COMPACT,
+                "^New buff: (?:Gain )?(.*(?:Honeyhives?|Honeycomb|Critter|Trees lathered).*)\\.$",
+                compact = { "§6☀ Beekeeper §8· ${Fmt.rawSpan(it.raw, it[1], "§a")}" },
+                sample = "§eNew buff: §r§aGain §r§6+2 Honeycomb §r§afrom Honeyhives§r§a.",
+                title = "Beekeeper · buff")
+            rule("beekeeper-toggle", RuleAction.COMPACT,
+                "^You can disable this messaging by toggling Bee[Kk]eeper in your /hotf!",
+                compact = { "" },
+                sample = "§8§oYou can disable this messaging by toggling BeeKeeper in your /hotf!",
+                title = "Beekeeper · toggle hint")
         } +
         rules(TORRHUS) {
             // Déclarée avant Combat dans le registre : le générique "… DOWN!" des boss l'avalerait.

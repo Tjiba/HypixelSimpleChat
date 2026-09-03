@@ -4,6 +4,7 @@ import com.simplechat.engine.LegacyText
 import com.simplechat.engine.RuleAction
 import com.simplechat.rules.Category
 import com.simplechat.rules.Group
+import com.simplechat.rules.Section
 import com.simplechat.rules.rules
 
 /** Arrivées dans un lobby. */
@@ -13,7 +14,7 @@ object Joins {
         id = "lobbyJoin",
         title = "Lobby join/leave",
         category = Category.LOBBY,
-        section = "",
+        section = Section.NONE,
         default = RuleAction.HIDE,
         description = "OFF = as-is · GREY = dimmed · COMPACT = reformat · COMPACT_GREY = reformat + dimmed · HIDE = remove",
     )

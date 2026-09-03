@@ -4,14 +4,15 @@ import com.simplechat.engine.RuleAction
 import com.simplechat.rules.Category
 import com.simplechat.rules.Fmt
 import com.simplechat.rules.Group
+import com.simplechat.rules.Section
 import com.simplechat.rules.rules
 
 /** Dialogues PNJ et sonnerie Abiphone. */
 object Npc {
 
-    val NPC_DIALOG = Group("npcDialog", "NPC dialog", Category.SKYBLOCK, "WORLD & EVENTS", RuleAction.GREY,
+    val NPC_DIALOG = Group("npcDialog", "NPC dialog", Category.SKYBLOCK, Section.WORLD, RuleAction.GREY,
         description = "OFF = as-is · GREY = dimmed · COMPACT = reformat · COMPACT_GREY = reformat + dimmed · HIDE = remove")
-    val ABIPHONE = Group("abiphoneRing", "Abiphone ring", Category.SKYBLOCK, "GENERAL", RuleAction.HIDE,
+    val ABIPHONE = Group("abiphoneRing", "Abiphone ring", Category.SKYBLOCK, Section.GENERAL, RuleAction.HIDE,
         description = "'✆ RING…' lines. The clickable pickup line always stays")
 
     val rules =

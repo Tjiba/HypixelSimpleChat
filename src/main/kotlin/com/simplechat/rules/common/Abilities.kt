@@ -4,12 +4,13 @@ import com.simplechat.engine.RuleAction
 import com.simplechat.rules.Category
 import com.simplechat.rules.Fmt
 import com.simplechat.rules.Group
+import com.simplechat.rules.Section
 import com.simplechat.rules.rules
 
 /** Cooldowns, mana, capacités prêtes, refus de spam du serveur. */
 object Abilities {
 
-    val ABILITIES = Group("abilities", "Abilities / cooldowns", Category.SKYBLOCK, "COMBAT", RuleAction.HIDE,
+    val ABILITIES = Group("abilities", "Abilities / cooldowns", Category.SKYBLOCK, Section.COMBAT, RuleAction.HIDE,
         description = "Cooldown, not enough mana, ability ready, class milestones, autopet, potion effects, slow down")
 
     val rules = rules(ABILITIES) {
@@ -18,6 +19,12 @@ object Abilities {
             compact = { "§7Cooldown §8· §f${it[1]}s" },
             sample = "§cThis ability is on cooldown for 2 more seconds.",
             title = "Cooldown with timer")
+        // Objets à charges (Wither Cloak…) : même chose, dit autrement.
+        rule("no-charges", RuleAction.HIDE,
+            "^No more charges, next one in (\\d+)s",
+            compact = { "§7No charges §8· §f${it[1]}s" },
+            sample = "§cNo more charges, next one in 3s!",
+            title = "No more charges")
         rule("cooldown", RuleAction.HIDE,
             "(?:This (?:item's ability|item|ability)|Your Ultimate) is (?:temporarily disabled!|on cooldown)",
             compact = { "§7Cooldown" },

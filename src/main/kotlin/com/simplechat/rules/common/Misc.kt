@@ -3,6 +3,7 @@ package com.simplechat.rules.common
 import com.simplechat.engine.RuleAction
 import com.simplechat.rules.Category
 import com.simplechat.rules.Group
+import com.simplechat.rules.Section
 import com.simplechat.rules.rules
 
 /** Rappels sans action possible : inventaire plein, items legacy, grenouille fatiguée. */
@@ -12,7 +13,7 @@ object Misc {
         id = "misc",
         title = "Misc",
         category = Category.SKYBLOCK,
-        section = "WORLD & EVENTS",
+        section = Section.WORLD,
         default = RuleAction.HIDE,
         description = "Inventory full, Legacy Items notice, exhausted Frog",
     )

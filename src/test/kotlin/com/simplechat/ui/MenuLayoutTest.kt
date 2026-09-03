@@ -2,6 +2,8 @@ package com.simplechat.ui
 
 import com.simplechat.rules.Category
 import com.simplechat.rules.Registry
+import com.simplechat.rules.Section
+import com.simplechat.rules.Tab
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -22,12 +24,22 @@ class MenuLayoutTest {
 
     @Test fun `general tab comes first and each content gets its own tab`() {
         assertEquals("General", skyblock.keys.first())
-        assertTrue("Dungeons" in skyblock.keys, "onglet manquant : ${skyblock.keys}")
+        assertEquals(listOf("General") + Tab.entries.map { it.title }, skyblock.keys.toList())
     }
 
-    // Un onglet à plusieurs sections les affiche, dans l'ordre de déclaration des groupes.
+    // Un onglet à plusieurs sections les affiche, dans l'ordre de déclaration de Section.
     @Test fun `a multi-section tab keeps its headers`() {
         assertEquals(listOf("GENERAL", "TORRHUS", "HUNTING", "SAFARI"), skyblock["Foraging"]!!.keys.toList())
+        assertEquals(listOf("GENERAL", "CRYSTAL HOLLOWS", "NUCLEUS"), skyblock["Mining"]!!.keys.toList())
+    }
+
+    // L'ordre des sections vient de l'enum, pas de celui — mouvant — de Registry.groups.
+    @Test fun `section order follows the enum, not the registry`() {
+        for ((_, sections) in skyblock) {
+            val shown = sections.keys.filter { it.isNotEmpty() }
+            val expected = Section.entries.map { it.title }.filter { it in shown }
+            assertEquals(expected, shown, "sections dans le désordre")
+        }
     }
 
     @Test fun `a single-section tab holds only its own settings, without a section header`() {
@@ -40,7 +52,7 @@ class MenuLayoutTest {
     @Test fun `non-rule settings keep their spot`() {
         val general = skyblock["General"]!!
         assertEquals(listOf("enabled", "customPatterns"), general["GENERAL"]!!.take(2))
-        assertTrue("hoppity" in general["WORLD & EVENTS"]!!)
+        assertTrue("hoppity" in general["WORLD"]!!)
         assertEquals(listOf("bazaarItemsColor", "bazaarSalesColor"), general["ECONOMY"]!!.take(2))
     }
 

@@ -4,13 +4,14 @@ import com.simplechat.engine.RuleAction
 import com.simplechat.rules.Category
 import com.simplechat.rules.Fmt
 import com.simplechat.rules.Group
+import com.simplechat.rules.Section
 import com.simplechat.rules.rules
 
 /** Cartes de récompense quotidienne et butins réclamés. */
 object Rewards {
 
-    val MYSTERY = Group("mysteryReward", "Daily/mystery reward", Category.LOBBY, "", RuleAction.COMPACT)
-    val CLAIMED = Group("claimedCurrency", "Claimed rewards", Category.LOBBY, "", RuleAction.COMPACT)
+    val MYSTERY = Group("mysteryReward", "Daily/mystery reward", Category.LOBBY, Section.NONE, RuleAction.COMPACT)
+    val CLAIMED = Group("claimedCurrency", "Claimed rewards", Category.LOBBY, Section.NONE, RuleAction.COMPACT)
 
     val rules =
         rules(MYSTERY) {

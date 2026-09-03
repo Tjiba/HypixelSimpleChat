@@ -237,6 +237,8 @@ public abstract class ChatHudMixin implements IHscChat {
         String clean = ChatRules.INSTANCE.clean(legacy);
         if (warned && clean.isEmpty()) { ci.cancel(); return; }
         Verdict v = com.simplechat.SafariSummary.INSTANCE.process(clean, cfg);
+        // Le pavé de coffre se reconnaît à la couleur de ses barres : il lui faut le brut.
+        if (v == null) v = com.simplechat.MiningSummary.INSTANCE.process(clean, legacy, cfg);
         if (v == null) v = com.simplechat.HoppityCompact.INSTANCE.process(clean, cfg.getCompactHoppity());
         // Avant le registre : le début de quête slayer attend sa ligne d'objectif pour être nommé.
         if (v == null) v = com.simplechat.rules.common.Slayer.INSTANCE.process(clean, cfg);

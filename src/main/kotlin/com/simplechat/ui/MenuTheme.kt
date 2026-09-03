@@ -24,11 +24,14 @@ internal object MenuTheme {
 
     // Les 16 codes couleur de Minecraft n'ont ni vert forêt ni terre cuite : teintes en dur.
     private const val FORAGING = 0xFF2E7D32.toInt()   // vert foncé
-    private val TAB_ACCENT = mapOf("Foraging" to FORAGING)
+    private const val MINING = 0xFF7E57C2.toInt()     // améthyste des Crystal Hollows
+    private val TAB_ACCENT = mapOf("Foraging" to FORAGING, "Mining" to MINING)
     private val SECTION_TINT = mapOf(
         "Foraging/GENERAL" to FORAGING,
-        "Foraging/GALATEA" to 0xFF4C9A57.toInt(),   // vert forêt
         "Foraging/TORRHUS" to 0xFFC1663F.toInt(),   // canyon
+        "Mining/GENERAL" to MINING,
+        "Mining/CRYSTAL HOLLOWS" to 0xFF4FA3C7.toInt(),   // saphir
+        "Mining/NUCLEUS" to 0xFF3F8F7A.toInt(),           // jade
     )
 
     /** Couleur de l'onglet actif : blurple par défaut, teinte propre pour certains contenus. */

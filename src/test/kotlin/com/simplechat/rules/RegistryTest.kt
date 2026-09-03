@@ -52,7 +52,7 @@ class RegistryTest {
 
     // Le détecteur ci-dessus doit vraiment détecter : la générique est déclarée avant la précise.
     @Test fun `le détecteur d'étouffement fonctionne`() {
-        val group = Group("test", "Test", Category.SKYBLOCK, "TEST", RuleAction.HIDE)
+        val group = Group("test", "Test", Category.SKYBLOCK, Section.NONE, RuleAction.HIDE)
         val list = rules(group) {
             rule("generic", RuleAction.HIDE, "damage", sample = "Something hit you for 5 damage")
             rule("precise", RuleAction.HIDE, "^Kuudra hit you for", sample = "Kuudra hit you for 5 damage")

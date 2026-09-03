@@ -4,12 +4,13 @@ import com.simplechat.engine.RuleAction
 import com.simplechat.rules.Category
 import com.simplechat.rules.Fmt
 import com.simplechat.rules.Group
+import com.simplechat.rules.Section
 import com.simplechat.rules.rules
 
 /** Parkours, pads de téléportation, fire sales, chasse de Hoppity, sacrifices. */
 object Events {
 
-    val EVENTS = Group("events", "Events", Category.SKYBLOCK, "WORLD & EVENTS", RuleAction.HIDE,
+    val EVENTS = Group("events", "Events", Category.SKYBLOCK, Section.WORLD, RuleAction.HIDE,
         description = "Parkour, teleport pads, fire sales, Hoppity eggs, sacrifice, snow cannon")
 
     val rules = rules(EVENTS) {

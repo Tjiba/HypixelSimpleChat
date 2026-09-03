@@ -121,7 +121,7 @@ object BazaarSummary {
 
     private fun line(items: Map<String, Item>, orders: Int, sell: Boolean, grey: Boolean, cfg: RuleConfig): String {
         val count = items.values.sumOf { it.qty }
-        val head = if (sell) "§6BZ §c-" else "§6BZ §a+"
+        val head = if (sell) "§6Bz §c-" else "§6Bz §a+"
         val kind = if (sell) "sale" else "buy"
         val full = "$head ${hex(cfg.bazaarItemsColor)}${group(count)} item${plural(count)} " +
             "§8· ${hex(cfg.bazaarSalesColor)}$orders $kind${plural(orders.toLong())} " +

@@ -5,14 +5,16 @@ import com.simplechat.engine.RuleAction
 import com.simplechat.rules.Category
 import com.simplechat.rules.Fmt
 import com.simplechat.rules.Group
+import com.simplechat.rules.Section
+import com.simplechat.rules.Tab
 import com.simplechat.rules.rules
 
 /** Catacombes : clés, portes, leviers, coffres, énigmes, bénédictions. */
 object Dungeons {
 
-    val DUNGEONS = Group("dungeons", "Dungeons", Category.SKYBLOCK, "DUNGEONS", RuleAction.HIDE,
+    val DUNGEONS = Group("dungeons", "Dungeons", Category.SKYBLOCK, Section.DUNGEONS, RuleAction.HIDE,
         description = "Keys, doors, levers, chests, puzzles, blessings, boss/NPC lines",
-        tab = "Dungeons")
+        tab = Tab.DUNGEONS)
 
     /** Déclarée avant Npc dans le registre : ces PNJ arrivent tantôt nus, tantôt préfixés
      *  « [NPC] », et le réglage générique des dialogues les avalerait. */

@@ -4,12 +4,13 @@ import com.simplechat.engine.RuleAction
 import com.simplechat.rules.Category
 import com.simplechat.rules.Fmt
 import com.simplechat.rules.Group
+import com.simplechat.rules.Section
 import com.simplechat.rules.rules
 
 /** Changements de serveur, écrans d'accueil, pubs de lobby, boîtes mystère. */
 object Transitions {
 
-    val TRANSITIONS = Group("transitions", "Server / transitions", Category.SYSTEM, "", RuleAction.HIDE,
+    val TRANSITIONS = Group("transitions", "Server / transitions", Category.SYSTEM, Section.NONE, RuleAction.HIDE,
         description = "Warping, sending to server, queuing, welcome/profile lines, watchdog, mystery boxes, lobby ads")
 
     val rules = rules(TRANSITIONS) {
