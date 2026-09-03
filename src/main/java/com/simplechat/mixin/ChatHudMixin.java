@@ -23,6 +23,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Constant;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyConstant;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.List;
@@ -67,6 +68,9 @@ public abstract class ChatHudMixin implements IHscChat {
     @Invoker("refreshTrimmedMessages")
     abstract void hsc$refreshTrimmed();
 
+    @Invoker("addMessageToDisplayQueue")
+    abstract void hsc$invokeAddToDisplay(GuiMessage message);
+
     // Le ChatComponent actif s'enregistre (le ChatScreenMixin le récupère sans Gui.getChat(), absent en 26.2).
     // require=0 : feature confort — si MC change la signature, on dégrade au lieu de crasher.
     @Inject(method = "<init>", at = @At("TAIL"), require = 0)
@@ -77,8 +81,14 @@ public abstract class ChatHudMixin implements IHscChat {
     @Shadow
     public abstract void setVisibleMessageFilter(java.util.function.Predicate<GuiMessage> filter);
 
+    @Shadow
+    public abstract void resetChatScroll();
+
     private int hsc$tabCode = 0;   // 0=All, 1=Party, 2=Guild(+Officer)
     private String hsc$query = "";
+    // Filtre en cours (onglet + recherche), null quand on affiche tout.
+    private java.util.function.Predicate<GuiMessage> hsc$pred = null;
+    private String hsc$filterKey = "0|";
 
     @Override
     public void hsc$setChannelFilter(int tabCode) {
@@ -97,10 +107,14 @@ public abstract class ChatHudMixin implements IHscChat {
         final int tab = hsc$tabCode;
         final String q = hsc$query.toLowerCase(java.util.Locale.ROOT);
         final String[] tokens = q.isEmpty() ? new String[0] : q.split("\\s+");
+        // Capture unique : le prédicat repasse sur tout l'historique à chaque rafraîchissement.
+        final RuleConfig cfg = RuleConfig.Companion.current();
         java.util.function.Predicate<GuiMessage> pred = m -> {
-            String content = m.content().getString();
+            // Hypixel laisse ses « § » dans le texte du composant : sans clean, ni le canal ni la
+            // recherche ne voient le vrai texte de la ligne.
+            String content = ChatRules.INSTANCE.clean(m.content().getString());
             if (tab != 0) {
-                com.simplechat.engine.Channel ch = ChatRules.INSTANCE.classify(hsc$stripLead(content));
+                com.simplechat.engine.Channel ch = hsc$channelOf(content, cfg);
                 boolean ok = switch (tab) {
                     case 1 -> ch == com.simplechat.engine.Channel.PARTY;
                     case 2 -> ch == com.simplechat.engine.Channel.GUILD || ch == com.simplechat.engine.Channel.OFFICER;
@@ -114,12 +128,34 @@ public abstract class ChatHudMixin implements IHscChat {
             }
             return true;
         };
+        boolean filtering = tab != 0 || tokens.length > 0;
+        hsc$pred = filtering ? pred : null;
         setVisibleMessageFilter(pred);
         hsc$refreshTrimmed();
-        if (tab == 0 && tokens.length == 0) return -1;
+        // Le filtre a bougé, la liste change de taille : sans ça on reste au scroll d'avant, dans le
+        // vide. Filtre inchangé (réouverture du chat) = on garde le scroll, comme le vanilla.
+        String key = tab + "|" + q;
+        if (!key.equals(hsc$filterKey)) { hsc$filterKey = key; resetChatScroll(); }
+        if (!filtering) return -1;
         int count = 0;
         try { for (GuiMessage m : hsc$allMessages()) if (pred.test(m)) count++; } catch (Throwable ignored) {}
         return count;
+    }
+
+    /** Canal d'une ligne de l'historique. classify ne connaît que les en-têtes d'Hypixel : nos propres
+     *  formats portent le préfixe configuré ("G", "O", "P" par défaut), qu'on rattrape ensuite. */
+    private static com.simplechat.engine.Channel hsc$channelOf(String clean, RuleConfig cfg) {
+        String s = hsc$stripLead(clean);
+        com.simplechat.engine.Channel ch = ChatRules.INSTANCE.classify(s);
+        if (ch != com.simplechat.engine.Channel.SYSTEM) return ch;
+        if (hsc$headedBy(s, cfg.getBridge().getOfficerPrefix())) return com.simplechat.engine.Channel.OFFICER;
+        if (hsc$headedBy(s, cfg.getBridge().getGuildPrefix())) return com.simplechat.engine.Channel.GUILD;
+        if (hsc$headedBy(s, cfg.getPartyPrefix())) return com.simplechat.engine.Channel.PARTY;
+        return ch;
+    }
+
+    private static boolean hsc$headedBy(String s, String prefix) {
+        return !prefix.isEmpty() && s.startsWith(prefix + " > ");
     }
 
     /** Retire un éventuel timestamp de tête "[HH:MM] " pour que classify voie le préfixe de canal. */
@@ -127,6 +163,29 @@ public abstract class ChatHudMixin implements IHscChat {
         if (s.length() >= 8 && s.charAt(0) == '[' && s.charAt(3) == ':' && s.charAt(6) == ']' && s.charAt(7) == ' ')
             return s.substring(8);
         return s;
+    }
+
+    // Vanilla consulte visibleMessageFilter AVANT de ranger la ligne dans allMessages : une ligne
+    // masquée par l'onglet Party serait perdue pour de bon, l'onglet All ne la reverrait jamais.
+    // Tant que NOTRE filtre est actif on laisse tout entrer dans l'historique et on ne coupe que
+    // l'affichage, juste en dessous. require=0 : si MC déplace l'appel, on retombe sur le vanilla.
+    @Redirect(
+        method = "addMessage(Lnet/minecraft/network/chat/Component;Lnet/minecraft/network/chat/MessageSignature;Lnet/minecraft/client/multiplayer/chat/GuiMessageSource;Lnet/minecraft/client/multiplayer/chat/GuiMessageTag;)V",
+        at = @At(value = "INVOKE", target = "Ljava/util/function/Predicate;test(Ljava/lang/Object;)Z"),
+        require = 0
+    )
+    private boolean hsc$keepEverything(java.util.function.Predicate<GuiMessage> filter, Object message) {
+        return hsc$pred != null || filter.test((GuiMessage) message);
+    }
+
+    @Redirect(
+        method = "addMessage(Lnet/minecraft/network/chat/Component;Lnet/minecraft/network/chat/MessageSignature;Lnet/minecraft/client/multiplayer/chat/GuiMessageSource;Lnet/minecraft/client/multiplayer/chat/GuiMessageTag;)V",
+        at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/components/ChatComponent;addMessageToDisplayQueue(Lnet/minecraft/client/multiplayer/chat/GuiMessage;)V"),
+        require = 0
+    )
+    private void hsc$displayIfVisible(ChatComponent self, GuiMessage message) {
+        if (hsc$pred != null && !hsc$pred.test(message)) return;
+        hsc$invokeAddToDisplay(message);
     }
 
     /** Message affiché sous le curseur : géométrie du chat recalculée (pas de helper vanilla). */
