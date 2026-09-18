@@ -33,11 +33,14 @@ class MenuScreen(private val parent: Screen?) : Screen(
     private var topTab: String? = null
     private val items = ArrayList<Item>()
     private var scroll = 0
+    // L'aperçu défile à part : sa hauteur dépend du rendu (retours à la ligne), bornée au dessin.
+    private var previewScroll = 0
+    private var previewMax = 0
     private var openDropdown: Setting? = null
     private var dropdownConstants: List<Enum<*>> = emptyList()
     private var focused: Setting? = null
     private var editBuffer = ""
-    private var previewLines: List<Pair<Component, Component?>> = emptyList()
+    private var previewLines: List<PreviewEntry> = emptyList()
     // Survols des lignes d'aperçu, position notée au rendu : le tooltip passe après.
     private val previewHovers = ArrayList<Pair<IntArray, Component>>()
     // Color picker HSV : ouvert au clic sur le carré de couleur.
@@ -62,6 +65,10 @@ class MenuScreen(private val parent: Screen?) : Screen(
         val bulkIds: List<String>? = null,
     ) : Item()
     private object PresetRow : Item()
+    // Aperçu : les mêmes en-têtes de section qu'à gauche, puis les lignes de chat.
+    private sealed class PreviewEntry
+    private class PreviewHeader(val title: String) : PreviewEntry()
+    private class PreviewText(val text: Component, val hover: Component?) : PreviewEntry()
     private class Rect(val key: String?, val label: String, val x1: Int, val y1: Int, val x2: Int, val y2: Int)
 
     private val headerH = 22
@@ -236,8 +243,7 @@ class MenuScreen(private val parent: Screen?) : Screen(
     }
 
     /** Liste + aperçu : les deux vont toujours ensemble, l'aperçu est déduit de la liste.
-     *  Le scroll est borné ici : replier un groupe raccourcit la liste, et l'aperçu se calcule
-     *  à partir du premier réglage visible — un scroll périmé le viderait. */
+     *  Le scroll est borné ici : replier un groupe raccourcit la liste. */
     private fun refresh() {
         buildItems()
         scroll = scroll.coerceIn(0, maxScroll())
@@ -245,26 +251,48 @@ class MenuScreen(private val parent: Screen?) : Screen(
     }
 
     private fun rebuildPreview() {
-        // L'aperçu suit la liste affichée : il démarre au premier réglage encore visible.
-        val ids = ArrayList<String>()
-        eachItem { item, top, h -> if (item is Setting && top + h > listTop()) ids.add(item.id) }
+        val cfg = RuleConfig.current()
+        // Pages de canal : lignes fixes, pas de section à reprendre.
+        if (searchQuery.isEmpty() && VIEWS[currentCategory] == null) {
+            previewLines = Preview.forSettings(cfg, currentCategory, emptyList()).map { it.toEntry() }
+            return
+        }
+        // Toute la page, section par section : l'aperçu défile de son côté, sans plafond, pour
+        // qu'on puisse le parcourir en entier sans toucher à la liste.
+        val sections = ArrayList<Pair<String, ArrayList<String>>>()
+        var header = ""
+        for (item in items) {
+            if (item is Header) header = item.title
+            if (item !is Setting) continue
+            if (sections.lastOrNull()?.first != header) sections.add(header to ArrayList())
+            sections.last().second.add(item.id)
+        }
         // En recherche, l'aperçu montre les résultats trouvés, pas les exemples de la catégorie.
         val category = if (searchQuery.isEmpty()) currentCategory else Preview.SEARCH
-        previewLines = Preview.forSettings(RuleConfig.current(), category, ids)
-            .map { SegRender.toComponent(it.segs) to it.hover?.let { h -> SegRender.toComponent(LegacyText.parse(h)) } }
+        val entries = ArrayList<PreviewEntry>()
+        for ((title, ids) in sections) {
+            val lines = Preview.forSettings(cfg, category, ids, Int.MAX_VALUE)
+            if (lines.isEmpty()) continue // section sans exemple : pas d'en-tête orphelin
+            if (title.isNotEmpty()) entries.add(PreviewHeader(title))
+            lines.mapTo(entries) { it.toEntry() }
+        }
+        previewLines = entries
     }
+
+    private fun Preview.Line.toEntry(): PreviewEntry =
+        PreviewText(SegRender.toComponent(segs), hover?.let { SegRender.toComponent(LegacyText.parse(it)) })
 
     private fun select(id: String?) {
         currentCategory = id
         topTab = VIEWS[id]?.keys?.first()
         searchQuery = ""; searchFocused = false
-        scroll = 0; focused = null; openDropdown = null; picker = null
+        scroll = 0; previewScroll = 0; focused = null; openDropdown = null; picker = null
         refresh()
     }
 
     private fun selectTop(tab: String) {
         topTab = tab
-        scroll = 0; focused = null; openDropdown = null; picker = null
+        scroll = 0; previewScroll = 0; focused = null; openDropdown = null; picker = null
         refresh()
     }
 
@@ -442,19 +470,46 @@ class MenuScreen(private val parent: Screen?) : Screen(
         if (!showPreview()) return
         val x1 = previewX1(); val x2 = mainX2(); val top = regionTop(); val bot = regionBottom()
         rr(gfx, x1, top, x2, bot, 6, MenuTheme.CARD)
-        gfx.enableScissor(x1, top, x2, bot)
         gfx.text(font, Component.literal("§8§lPREVIEW"), x1 + 8, top + 7, MenuTheme.TEXT_FAINT)
-        var y = top + 21
+        // Le titre reste ; seules les lignes défilent, découpées sous lui et au-dessus du bord bas.
+        val ctop = top + 21; val cbot = bot - 4
+        gfx.enableScissor(x1, ctop, x2, cbot)
+        previewScroll = previewScroll.coerceIn(0, previewMax)
+        var y = ctop - previewScroll
         val w = x2 - x1 - 16
         previewHovers.clear()
-        for ((line, hover) in previewLines) {
-            if (y > bot) break
-            gfx.textWithWordWrap(font, line, x1 + 8, y, w, MenuTheme.TEXT)
-            val h = font.wordWrapHeight(line, w)
-            if (hover != null) previewHovers.add(intArrayOf(x1 + 8, y, x1 + 8 + font.width(line), y + h) to hover)
-            y += h + 4
+        for ((i, entry) in previewLines.withIndex()) {
+            when (entry) {
+                is PreviewHeader -> {
+                    if (i > 0) y += 4
+                    if (y + font.lineHeight >= ctop && y <= cbot) {
+                        val label = "§l${entry.title}"
+                        gfx.text(font, label, x1 + 8, y, MenuTheme.sectionTint(topTab, entry.title))
+                        gfx.fill(x1 + 8 + font.width(label) + 8, y + font.lineHeight / 2, x2 - 10, y + font.lineHeight / 2 + 1, MenuTheme.GLASS_BORDER)
+                    }
+                    y += font.lineHeight + 5
+                }
+                is PreviewText -> {
+                    val h = font.wordWrapHeight(entry.text, w)
+                    if (y + h >= ctop && y <= cbot) {
+                        gfx.textWithWordWrap(font, entry.text, x1 + 8, y, w, MenuTheme.TEXT)
+                        if (entry.hover != null) previewHovers.add(
+                            intArrayOf(x1 + 8, maxOf(y, ctop), x1 + 8 + font.width(entry.text), minOf(y + h, cbot)) to entry.hover)
+                    }
+                    y += h + 4
+                }
+            }
         }
         gfx.disableScissor()
+        val vh = cbot - ctop
+        val contentH = y + previewScroll - ctop - 4
+        previewMax = maxOf(0, contentH - vh)
+        if (previewMax > 0) {
+            val thumbH = maxOf(10, vh * vh / contentH)
+            val thumbY = ctop + (vh - thumbH) * previewScroll / previewMax
+            gfx.fill(x2 - 3, ctop, x2 - 1, cbot, MenuTheme.FIELD)
+            rr(gfx, x2 - 3, thumbY, x2 - 1, thumbY + thumbH, 1, MenuTheme.SCROLL_THUMB)
+        }
     }
 
     private fun renderFooter(gfx: GuiGraphicsExtractor, mx: Int, my: Int) {
@@ -731,7 +786,10 @@ class MenuScreen(private val parent: Screen?) : Screen(
         openDropdown = null; picker = null
         if (inRect(mouseX.toInt(), mouseY.toInt(), mainX1(), listTop(), settingsX2(), regionBottom())) {
             scroll = (scroll - (scrollY * MenuTheme.ROW_H).toInt()).coerceIn(0, maxScroll())
-            rebuildPreview() // l'aperçu redémarre au réglage désormais en haut de liste
+            return true
+        }
+        if (showPreview() && inRect(mouseX.toInt(), mouseY.toInt(), previewX1(), regionTop(), mainX2(), regionBottom())) {
+            previewScroll = (previewScroll - (scrollY * MenuTheme.ROW_H).toInt()).coerceIn(0, previewMax)
             return true
         }
         return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY)
@@ -743,9 +801,9 @@ class MenuScreen(private val parent: Screen?) : Screen(
         if (openDropdown != null) { if (key == GLFW.GLFW_KEY_ESCAPE) openDropdown = null; return true }
         if (searchFocused) {
             when (key) {
-                GLFW.GLFW_KEY_ESCAPE -> { searchQuery = ""; searchFocused = false; scroll = 0; refresh() }
+                GLFW.GLFW_KEY_ESCAPE -> { searchQuery = ""; searchFocused = false; scroll = 0; previewScroll = 0; refresh() }
                 GLFW.GLFW_KEY_ENTER, GLFW.GLFW_KEY_KP_ENTER -> searchFocused = false
-                GLFW.GLFW_KEY_BACKSPACE -> if (searchQuery.isNotEmpty()) { searchQuery = searchQuery.dropLast(1); scroll = 0; refresh() }
+                GLFW.GLFW_KEY_BACKSPACE -> if (searchQuery.isNotEmpty()) { searchQuery = searchQuery.dropLast(1); scroll = 0; previewScroll = 0; refresh() }
             }
             return true
         }
@@ -763,7 +821,7 @@ class MenuScreen(private val parent: Screen?) : Screen(
     override fun charTyped(event: CharacterEvent): Boolean {
         if (searchFocused) {
             searchQuery += event.codepointAsString()
-            scroll = 0; refresh()
+            scroll = 0; previewScroll = 0; refresh()
             return true
         }
         if (focused == null) return super.charTyped(event)

@@ -1,6 +1,7 @@
 package com.simplechat.ui
 
 import com.simplechat.BazaarSummary
+import com.simplechat.PickupStash
 import com.simplechat.config.RuleConfig
 import com.simplechat.engine.ChatRules
 import com.simplechat.engine.LegacyText
@@ -98,7 +99,7 @@ object Preview {
      * Un bloc par réglage affiché : les phrases d'un même groupe déplié forment un seul bloc,
      * un groupe replié n'en montre qu'un exemple. Une ligne d'aperçu par ligne de réglage.
      */
-    private fun blocksFor(ids: List<String>, batch: Line? = null): List<List<Msg>> {
+    private fun blocksFor(cfg: RuleConfig, ids: List<String>, batch: Line? = null): List<List<Msg>> {
         val listed = ids.toSet()
         val blocks = ArrayList<List<Msg>>()
         var phrases = ArrayList<String>()
@@ -114,6 +115,11 @@ object Preview {
             if (id == BazaarSummary.SETTING && batch != null) {
                 flush()
                 blocks.add(listOf(Msg.Ready(batch)))
+                continue
+            }
+            if (id == PickupStash.SETTING) {
+                flush()
+                blocks.add(pickupStash(cfg).map { Msg.Ready(it) })
                 continue
             }
             val sample = sampleByRule[id]
@@ -149,6 +155,15 @@ object Preview {
     private fun bazaarBatch(cfg: RuleConfig): Line = BazaarSummary.preview(cfg)
         .let { Line(LegacyText.parse(it.shortLegacy), it.hoverLegacy) }
 
+    private fun pickupStash(cfg: RuleConfig): List<Line> = PickupStash.preview(cfg).flatMap { (raw, v) ->
+        when (v) {
+            is Verdict.Replace -> v.legacy.lines().map { Line(LegacyText.parse(it)) }
+            Verdict.Hide -> listOf(Line(listOf(Seg(ChatRules.clean(raw), 0x555555, strikethrough = true))))
+            Verdict.Pass -> listOf(Line(LegacyText.parse(raw)))
+            else -> error("Pickup Stash preview must be a plain verdict")
+        }
+    }
+
     // Un message masqué est montré barré : l'aperçu sert justement à voir ce qui disparaît.
     private fun render(cfg: RuleConfig, raw: String): Line =
         when (val v = ChatRules.evaluate(raw, cfg)) {
@@ -172,7 +187,7 @@ object Preview {
             "Public Chat" -> listOf(msgs(public(cfg.self)))
             // page racine : réglages globaux, les 3 canaux
             null -> listOf(msgs(public(cfg.self)), msgs(PARTY), msgs(guild(cfg.self)))
-            else -> capped(blocksFor(ids, bazaarBatch(cfg)), limit)
+            else -> capped(blocksFor(cfg, ids, bazaarBatch(cfg)), limit)
         }
         val ts = if (cfg.showTimestamps) Seg("[${java.time.LocalTime.now().format(TS_FMT)}] ", cfg.timestampColor) else null
 

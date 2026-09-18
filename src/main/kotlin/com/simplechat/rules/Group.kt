@@ -20,7 +20,6 @@ enum class Section(val title: String) {
     DROPS("DROPS"),
     ECONOMY("ECONOMY"),
     CRYSTAL_HOLLOWS("CRYSTAL HOLLOWS"),
-    NUCLEUS("NUCLEUS"),
     TORRHUS("TORRHUS"),
     HUNTING("HUNTING"),
     SAFARI("SAFARI"),

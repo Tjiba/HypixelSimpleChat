@@ -11,6 +11,8 @@ import com.simplechat.rules.rules
 object Economy {
 
     val SACKS = Group("sacks", "Sacks notifications", Category.SKYBLOCK, Section.DROPS, RuleAction.GREY)
+    val PICKUP_STASH = Group("pickup-stash", "Pickup stash", Category.SKYBLOCK, Section.DROPS, RuleAction.COMPACT,
+        description = "Compact stash reminders and pickups", split = false)
     val LOOT_SHARE = Group("lootShare", "Loot share", Category.SKYBLOCK, Section.DROPS, RuleAction.COMPACT,
         description = "Loot earned by assisting someone", split = false)
     val GEXP = Group("gexp", "Guild EXP earned", Category.SKYBLOCK, Section.ECONOMY, RuleAction.COMPACT)
@@ -26,6 +28,23 @@ object Economy {
                     (if (body.startsWith("-")) "§c" else "§a") + body
                 },
                 sample = "§6[Sacks] §a+64 Cobblestone")
+        } +
+        rules(PICKUP_STASH) {
+            rule("stash-item", RuleAction.COMPACT,
+                "^From stash: (.+)$",
+                compact = { "§bStash §7· ${Fmt.rawSpan(it.raw, it[1])}" },
+                sample = "§eFrom stash: §fWild Rose",
+                title = "Recovered item")
+            rule("stash-picked-up", RuleAction.COMPACT,
+                "^You picked up ([\\d,]+) items? from your (?:material|item) stash!$",
+                compact = { "§bStash §7· §a+${it[1]} §f${if (it[1] == "1") "item" else "items"}" },
+                sample = "§eYou picked up §a192 §eitems from your material stash!",
+                title = "Recovered quantity")
+            rule("stash-remaining", RuleAction.COMPACT,
+                "^You still have ([\\d,]+) (materials?|items?) totalling ([\\d,]+) types? of (?:materials?|items?) in there!$",
+                compact = { "§bStash §7· §a${it[1]} §f${it[2]} left §7· §b${it[3]} §f${if (it[3] == "1") "type" else "types"}" },
+                sample = "§eYou still have §a6,117 materials §etotalling §b1 §etypes of materials in there!",
+                title = "Remaining stash")
         } +
         rules(LOOT_SHARE) {
             // Hypixel dit soit « loot », soit ce qui est tombé (« 2 Puck Shards », des coins…).

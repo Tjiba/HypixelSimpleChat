@@ -1,7 +1,9 @@
 package com.simplechat.ui
 
 import com.simplechat.BazaarSummary
+import com.simplechat.PickupStash
 import com.simplechat.config.RuleConfig
+import com.simplechat.engine.RuleAction
 import com.simplechat.engine.SelfPlayer
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -89,5 +91,35 @@ class PreviewTest {
     @Test fun `preview keeps its samples when there is no player`() {
         assert(textOf(RuleConfig.DEFAULT, "Guild Chat").contains("Player"))
         assert(textOf(RuleConfig.DEFAULT, "Public Chat").contains("MeteoFrance"))
+    }
+
+    @Test fun `stash preview distinguishes every action`() {
+        val original = listOf("You have 14,431 materials stashed away!",
+            "(This totals 16 types of materials stashed!)", ">>> CLICK HERE to pick them up! <<<",
+            "From stash: Wild Rose", "You picked up 192 items from your material stash!",
+            "You still have 6,117 materials totalling 1 types of materials in there!")
+        for (action in RuleAction.entries) {
+            val cfg = RuleConfig.DEFAULT.copy(groupActions = mapOf(PickupStash.SETTING to action))
+            val lines = Preview.forSettings(cfg, "SkyBlock", listOf(PickupStash.SETTING))
+            val compact = action == RuleAction.COMPACT || action == RuleAction.COMPACT_GREY
+            assertEquals(if (compact) listOf("Stash · 14,431 materials · 16 types [PICK UP]",
+                "Stash · Wild Rose", "Stash · +192 items · 6,117 materials left · 1 type") else original,
+                lines.map { line -> line.segs.joinToString("") { it.text } })
+            if (action == RuleAction.GREY || action == RuleAction.COMPACT_GREY || action == RuleAction.HIDE)
+                assert(lines.flatMap { it.segs }.all { it.color == 0x555555 })
+            assertEquals(action == RuleAction.HIDE, lines.flatMap { it.segs }.all { it.strikethrough })
+        }
+    }
+
+    @Test fun `stash preview follows global switches and compact theme`() {
+        val cfg = RuleConfig.DEFAULT.copy(compactTheme = true, compactThemeColor = 0xFF00FF)
+        val compact = Preview.forSettings(cfg, "SkyBlock", listOf(PickupStash.SETTING)).first()
+        assert(compact.segs.any { it.text.contains("materials") && it.color == 0xFF00FF })
+        for (disabled in listOf(cfg.copy(masterEnabled = false), cfg.copy(skyblockEnabled = false))) {
+            val lines = Preview.forSettings(disabled, "SkyBlock", listOf(PickupStash.SETTING))
+            assertEquals(6, lines.size)
+            assertEquals("You have 14,431 materials stashed away!", lines.first().segs.joinToString("") { it.text })
+            assert(lines.flatMap { it.segs }.none { it.color == 0xFF00FF })
+        }
     }
 }

@@ -54,9 +54,29 @@ object Combat {
             // Ta propre mort ("☠ You died.") n'est pas prise : c'est une information, pas du bruit.
             rule("player-death", RuleAction.GREY,
                 "^☠ (?!You )(\\S+) (.+?)\\.?$",
-                compact = { "§c☠ ${Fmt.rawSpan(it.raw, it[1], "§7")} §8· §7${it[2]}" },
+                compact = { "§c☠ ${Fmt.rawSpan(it.raw, it[1], "§7")} §8· ${cause(it.raw, it[2])}" },
                 sample = "§c ☠ §r§7Timo §r§7was killed by §r§cKuudra§r§7.")
         }
+
+    // Les morts sans tueur, dites en un mot.
+    private val CAUSES = mapOf(
+        "fell to their death" to "fell",
+        "fell into the void" to "void",
+        "burnt to death" to "burnt",
+        "burned to death" to "burnt",
+        "starved to death" to "starved",
+        "was blown up" to "blown up",
+    )
+
+    /** "was killed by Kuudra and became a ghost" -> "§cKuudra §8(ghost)" : le tueur garde sa
+     *  couleur, le reste de la phrase saute. */
+    private fun cause(raw: String, text: String): String {
+        val ghost = text.endsWith(" and became a ghost")
+        val body = text.removeSuffix(" and became a ghost")
+        val killer = body.removePrefix("was killed by ")
+        val short = if (killer != body) Fmt.rawSpan(raw, killer, "§c") else "§7" + (CAUSES[body] ?: body)
+        return if (ghost) "$short §8(ghost)" else short
+    }
 
     /** Le tout-venant du combat : un seul réglage, évalué après les règles précises. */
     val spam =

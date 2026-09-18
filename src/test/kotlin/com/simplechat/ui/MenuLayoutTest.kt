@@ -30,7 +30,7 @@ class MenuLayoutTest {
     // Un onglet à plusieurs sections les affiche, dans l'ordre de déclaration de Section.
     @Test fun `a multi-section tab keeps its headers`() {
         assertEquals(listOf("GENERAL", "TORRHUS", "HUNTING", "SAFARI"), skyblock["Foraging"]!!.keys.toList())
-        assertEquals(listOf("GENERAL", "CRYSTAL HOLLOWS", "NUCLEUS"), skyblock["Mining"]!!.keys.toList())
+        assertEquals(listOf("GENERAL", "CRYSTAL HOLLOWS"), skyblock["Mining"]!!.keys.toList())
     }
 
     // L'ordre des sections vient de l'enum, pas de celui — mouvant — de Registry.groups.
@@ -77,7 +77,7 @@ class MenuLayoutTest {
         // Un groupe = une entrée, sauf s'il se découpe en un réglage par phrase.
         val expected = Registry.groups.filter { it.category == Category.SKYBLOCK }
             .sumOf { group ->
-                if (!group.split) 1 else Registry.byGroup[group]!!.size.takeIf { it > 1 } ?: 1
+                if (!group.split) 1 else Registry.byGroup[group].orEmpty().size.takeIf { it > 1 } ?: 1
             }
         assertEquals(expected, ids.size)
     }

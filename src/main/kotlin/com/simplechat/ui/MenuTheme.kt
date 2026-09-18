@@ -31,7 +31,6 @@ internal object MenuTheme {
         "Foraging/TORRHUS" to 0xFFC1663F.toInt(),   // canyon
         "Mining/GENERAL" to MINING,
         "Mining/CRYSTAL HOLLOWS" to 0xFF4FA3C7.toInt(),   // saphir
-        "Mining/NUCLEUS" to 0xFF3F8F7A.toInt(),           // jade
     )
 
     /** Couleur de l'onglet actif : blurple par défaut, teinte propre pour certains contenus. */

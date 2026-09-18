@@ -17,7 +17,7 @@ object Mining {
         description = "Powder chest loot, merged into one line",
         tab = Tab.MINING)
     val CHEST = Group("mining-chest", "Chests", Category.SKYBLOCK, Section.GENERAL, RuleAction.HIDE,
-        description = "Uncovered, lock picked, already looted",
+        description = "Uncovered, lock picked, already looted, item picked up",
         tab = Tab.MINING)
     val TOOL = Group("mining-tool", "Breaking Power", Category.SKYBLOCK, Section.GENERAL, RuleAction.COMPACT,
         description = "Fragilis' warning when the pickaxe is too weak",
@@ -26,8 +26,12 @@ object Mining {
     val SKY_MALL = Group("mining-sky-mall", "Sky Mall", Category.SKYBLOCK, Section.GENERAL, RuleAction.COMPACT,
         description = "The daily Sky Mall buff, merged into one line",
         tab = Tab.MINING, split = false)
+    // Le buff de pioche se raconte en trois lignes : un seul réglage pour le tout.
+    val PICKAXE = Group("mining-pickaxe", "Pickaxe ability", Category.SKYBLOCK, Section.GENERAL, RuleAction.COMPACT,
+        description = "Mining Speed Boost and co: used, expired, available again",
+        tab = Tab.MINING, split = false)
     val CRYSTAL = Group("mining-crystal", "Crystals", Category.SKYBLOCK, Section.CRYSTAL_HOLLOWS, RuleAction.COMPACT,
-        description = "Crystals found, placed, waiting to be picked up",
+        description = "Crystals found, placed, waiting to be picked up, run complete",
         tab = Tab.MINING)
     val DETECTOR = Group("mining-detector", "Metal Detector", Category.SKYBLOCK, Section.CRYSTAL_HOLLOWS, RuleAction.COMPACT,
         description = "What the Metal Detector digs up",
@@ -35,10 +39,17 @@ object Mining {
     val KEEPER = Group("mining-keeper", "Keepers", Category.SKYBLOCK, Section.CRYSTAL_HOLLOWS, RuleAction.HIDE,
         description = "Keeper of Diamond, Gold, Lapis and Emerald dialog",
         tab = Tab.MINING)
+    // Les gardes crient tous la même chose : un seul réglage pour le tout.
+    val GUARDS = Group("mining-guards", "Goblin guards", Category.SKYBLOCK, Section.CRYSTAL_HOLLOWS, RuleAction.HIDE,
+        description = "Guards shouting when a crystal is stolen",
+        tab = Tab.MINING, split = false)
     // Rendre les composants se raconte en plusieurs lignes : un seul réglage pour le tout.
-    val AUTOMATON = Group("mining-automaton", "Automaton", Category.SKYBLOCK, Section.NUCLEUS, RuleAction.COMPACT,
+    val AUTOMATON = Group("mining-automaton", "Automaton", Category.SKYBLOCK, Section.CRYSTAL_HOLLOWS, RuleAction.COMPACT,
         description = "Components brought to fix the giant",
         tab = Tab.MINING, split = false)
+
+    private const val PICKAXE_ABILITIES =
+        "Mining Speed Boost|Pickobulus|Maniac Miner|Vein Seeker|Sheer Force|Anomalous Desire|Gemstone Infusion"
 
     val rules =
         rules(CHEST_SUMMARY) {
@@ -70,6 +81,12 @@ object Mining {
                 "^This chest has already been looted",
                 sample = "§cThis chest has already been looted.",
                 title = "Already looted")
+            // L'objet ramassé au sol après le coffre : le pavé l'a déjà annoncé.
+            rule("chest-received", RuleAction.HIDE,
+                "^You received (\\d+) (Wishing Compass|Ascension Rope|Oil Barrel)\\.",
+                compact = { "§a+${it[1]} ${Fmt.rawSpan(it.raw, it[2])}" },
+                sample = "§aYou received §r§f1 §r§9Ascension Rope§r§a.",
+                title = "Item picked up")
         } +
         rules(TOOL) {
             // Le renvoi vers Fragilis tient la moitié de la ligne et ne sert qu'une fois.
@@ -99,6 +116,25 @@ object Mining {
                 sample = "§8§oYou can disable this messaging by toggling Sky Mall in your /hotm!",
                 title = "Toggle hint")
         } +
+        rules(PICKAXE) {
+            rule("pickaxe-used", RuleAction.COMPACT,
+                "^You used your (.+?) Pickaxe Ability!",
+                compact = { "§6⛏ §r${Fmt.rawSpan(it.raw, it[1])} §7used" },
+                sample = "§aYou used your §r§6Mining Speed Boost §r§aPickaxe Ability!",
+                title = "Ability used")
+            // "Your X has expired" et "X is now available" sont génériques : la liste des
+            // capacités de pioche les garde ici, hors du réglage Abilities.
+            rule("pickaxe-expired", RuleAction.COMPACT,
+                "^Your ($PICKAXE_ABILITIES) has expired!",
+                compact = { "§6⛏ §7${it[1]} expired" },
+                sample = "§cYour Mining Speed Boost has expired!",
+                title = "Ability expired")
+            rule("pickaxe-available", RuleAction.COMPACT,
+                "^($PICKAXE_ABILITIES) is now available!",
+                compact = { "§6⛏ §r${Fmt.rawSpan(it.raw, it[1])} §aready" },
+                sample = "§a§r§6Mining Speed Boost §r§ais now available!",
+                title = "Ability available")
+        } +
         rules(CRYSTAL) {
             rule("crystal-found", RuleAction.COMPACT,
                 "^✦ CRYSTAL FOUND \\((\\d+)/(\\d+)\\)",
@@ -120,6 +156,22 @@ object Mining {
                 "^PICK IT UP!$",
                 sample = "§6§lPICK IT UP!",
                 title = "Pick it up")
+            // Suit chaque cristal placé : la ligne du dessus dit déjà tout.
+            rule("crystal-keep-exploring", RuleAction.HIDE,
+                "^Keep exploring the Crystal Hollows to find the rest!",
+                compact = { "" },
+                sample = "  §r§dKeep exploring the §r§5Crystal Hollows §r§dto find the rest!",
+                title = "Keep exploring")
+            rule("nucleus-bundle", RuleAction.COMPACT,
+                "^You've earned a Crystal Loot Bundle!",
+                compact = { "§5§l✦ §r§dNucleus run complete" },
+                sample = "  §r§7You've earned a §r§5Crystal Loot Bundle§r§7!",
+                title = "Run complete")
+            rule("nucleus-vault", RuleAction.HIDE,
+                "^Pick it up near the Nucleus Vault!",
+                compact = { "" },
+                sample = "  §r§7Pick it up near the §r§5Nucleus Vault§r§7!",
+                title = "Vault hint")
         } +
         rules(DETECTOR) {
             // Le passage entier est recopié : la trouvaille garde sa couleur de rareté.
@@ -137,6 +189,20 @@ object Mining {
                 sample = "§e[NPC] §6Keeper of Diamond§f: §rExcellent! You have returned the " +
                     "§cScavenged Diamond Axe §rto its rightful place!")
         } +
+        rules(GUARDS) {
+            rule("guard-shout", RuleAction.HIDE,
+                "^\\[GUARD] ",
+                sample = "§c[GUARD] Ooblak§r§f: §r§eTHEY'RE STEALING THE CRYSTAL! GET THEM!",
+                title = "Guard shout")
+            rule("guard-escaped", RuleAction.HIDE,
+                "^Whew! That was a close one, better get out of here",
+                sample = "§8§oWhew! That was a close one, better get out of here...",
+                title = "Escaped")
+            rule("guard-stench", RuleAction.HIDE,
+                "^The Goblin King's foul stench has dissipated!",
+                sample = "§cThe Goblin King's §r§afoul stench §r§chas dissipated!",
+                title = "Stench dissipated")
+        } +
         rules(AUTOMATON) {
             // Sans ancre : l'automate parle tantôt nu, tantôt étiqueté "[NPC] ".
             rule("automaton-component", RuleAction.COMPACT,
@@ -153,6 +219,11 @@ object Mining {
                 "That's not one of the components I need!",
                 sample = "§rThat's not one of the components I need! Bring me one of the missing components:",
                 title = "Wrong component")
+            // La liste des composants manquants : un nom nu par ligne, sous le préambule.
+            rule("automaton-missing", RuleAction.HIDE,
+                "^(?:FTX 3070|Electron Transmitter|Superlite Motor|Synthetic Heart|Control Switch|Robotron Reflector)$",
+                sample = "  §r§9FTX 3070",
+                title = "Missing component")
             rule("automaton-fixed", RuleAction.HIDE,
                 "^Wait a minute\\. This will work just fine\\.",
                 sample = "§rWait a minute. This will work just fine.",

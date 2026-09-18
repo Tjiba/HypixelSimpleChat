@@ -4,6 +4,7 @@ import com.simplechat.config.RuleConfig
 import com.simplechat.engine.RuleAction
 import com.simplechat.engine.Verdict
 import com.simplechat.rules.Fmt
+import com.simplechat.rules.islands.Mining
 import java.util.regex.Pattern
 
 /**
@@ -16,7 +17,11 @@ object MiningSummary {
 
     // Sur le brut : c'est sa couleur qui distingue le pavé des coffres des autres pavés à ▬
     // d'Hypixel (bestiaire, cristaux du Nucleus), que clean() aplatit tous pareil.
-    private val WRAPPER = Pattern.compile("^§[ed]§l▬{16,}$")
+    // ComponentLegacy ouvre chaque segment par un §r : la couleur n'est jamais en tête de ligne.
+    private val WRAPPER = Pattern.compile("^(?:§r)*§[ed]§l▬{16,}$")
+    // Barres du "CRYSTAL FOUND" du Nucleus : les deux lignes du milieu ont leurs règles, les
+    // barres n'ont que leur couleur pour se distinguer — d'où ici plutôt que dans le registre.
+    private val CRYSTAL_WRAPPER = Pattern.compile("^(?:§r)*§5§l▬{16,}$")
     private val TITLE = Pattern.compile("^(?:CHEST LOCKPICKED|LOOT CHEST COLLECTED)$")
     private val HEADER = Pattern.compile("^REWARDS$")
     private val GAIN = Pattern.compile("^(.+?)(?: x([\\d,]+))?$")
@@ -34,6 +39,10 @@ object MiningSummary {
 
     /** Verdict d'une ligne du pavé, ou null si elle n'en fait pas partie. `clean` = texte décoloré. */
     fun process(clean: String, raw: String, cfg: RuleConfig): Verdict? {
+        if (CRYSTAL_WRAPPER.matcher(raw).matches()) {
+            val crystal = cfg.groupActions[Mining.CRYSTAL.id] ?: Mining.CRYSTAL.default
+            return if (crystal == RuleAction.OFF) null else Verdict.Hide
+        }
         val action = cfg.groupActions[SETTING] ?: RuleAction.COMPACT
         if (action == RuleAction.OFF) return null
 

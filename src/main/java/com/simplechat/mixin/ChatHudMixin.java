@@ -37,6 +37,8 @@ public abstract class ChatHudMixin implements IHscChat {
     // messages peuvent s'être glissés entre deux.
     private static final int HSC_BATCH_DEPTH = 8;
 
+    private String hsc$lastBlank = null;
+
     // Collapse global des répétitions : Collapse retient les lignes récentes, le mixin retrouve
     // celle qui revient dans l'historique et la ré-affiche avec (xN).
 
@@ -235,10 +237,16 @@ public abstract class ChatHudMixin implements IHscChat {
         boolean warned = !stripped.equals(legacy);
         legacy = stripped;
         String clean = ChatRules.INSTANCE.clean(legacy);
+        // Le séparateur d'ouverture n'est identifiable qu'à l'arrivée du stash, timestamp compris.
+        if (hsc$lastBlank != null && com.simplechat.PickupStash.INSTANCE.trimsPadding(clean, cfg)) {
+            hsc$removeLine(hsc$lastBlank, 1);
+        }
+        hsc$lastBlank = null;
         if (warned && clean.isEmpty()) { ci.cancel(); return; }
         Verdict v = com.simplechat.SafariSummary.INSTANCE.process(clean, cfg);
         // Le pavé de coffre se reconnaît à la couleur de ses barres : il lui faut le brut.
         if (v == null) v = com.simplechat.MiningSummary.INSTANCE.process(clean, legacy, cfg);
+        if (v == null) v = com.simplechat.PickupStash.INSTANCE.process(clean, cfg, legacy);
         if (v == null) v = com.simplechat.HoppityCompact.INSTANCE.process(clean, cfg.getCompactHoppity());
         // Avant le registre : le début de quête slayer attend sa ligne d'objectif pour être nommé.
         if (v == null) v = com.simplechat.rules.common.Slayer.INSTANCE.process(clean, cfg);
@@ -261,7 +269,8 @@ public abstract class ChatHudMixin implements IHscChat {
         // reformater un message SYSTEM — le Replace reconstruit le texte et perdrait le ClickEvent.
         // Les messages joueurs (Segments) restent formatés : Hypixel met un clic /msg sur tous les
         // pseudos, le garde-fou bloquerait sinon tout le reformat de canal.
-        if (v instanceof Verdict.Hide && hsc$hasActionClick(original)) {
+        if (v instanceof Verdict.Hide && hsc$hasActionClick(original)
+                && !com.simplechat.PickupStash.INSTANCE.isLine(clean)) {
             com.simplechat.Debug.logGuard("clickable button", legacy);
             v = com.simplechat.engine.Verdict.Pass.INSTANCE;
         }
@@ -311,6 +320,8 @@ public abstract class ChatHudMixin implements IHscChat {
         // Fin de quête slayer : sa ligne s'efface pour revenir collée à celle du niveau.
         String quest = com.simplechat.rules.common.Slayer.INSTANCE.stale();
         if (quest != null) hsc$removeLine(quest, HSC_BATCH_DEPTH);
+        String stash = com.simplechat.PickupStash.INSTANCE.stale();
+        if (stash != null) hsc$removeLine(stash, HSC_BATCH_DEPTH);
 
         Collapse.Seen seen = cfg.getGroupRepeats() ? Collapse.INSTANCE.seen(key) : null;
 
@@ -324,6 +335,7 @@ public abstract class ChatHudMixin implements IHscChat {
             Collapse.INSTANCE.remember(key, disp.getString(), count);
             com.simplechat.BazaarSummary.INSTANCE.displayed(disp.getString());
             com.simplechat.rules.common.Slayer.INSTANCE.displayed(disp.getString());
+            com.simplechat.PickupStash.INSTANCE.displayed(disp.getString());
             reAdd(disp, sig, src, tag, ci);
             return;
         }
@@ -332,14 +344,17 @@ public abstract class ChatHudMixin implements IHscChat {
         // Message intact + pas de timestamp : laisser MC l'ajouter tel quel. Ne PAS annuler/ré-ajouter,
         // sinon les autres mods injectant sur addMessage traitent chaque ligne en double.
         if (untouched && !cfg.getShowTimestamps()) {
+            if (key.isEmpty()) hsc$lastBlank = base.getString();
             Collapse.INSTANCE.remember(key, base.getString(), 1);
             return;
         }
 
         Component disp = withTimestamp(base, cfg);
+        if (key.isEmpty()) hsc$lastBlank = disp.getString();
         Collapse.INSTANCE.remember(key, disp.getString(), 1);
         com.simplechat.BazaarSummary.INSTANCE.displayed(disp.getString());
         com.simplechat.rules.common.Slayer.INSTANCE.displayed(disp.getString());
+        com.simplechat.PickupStash.INSTANCE.displayed(disp.getString());
         com.simplechat.Debug.logRendered(disp.getString());
         reAdd(disp, sig, src, tag, ci);
     }

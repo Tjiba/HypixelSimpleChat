@@ -26,6 +26,17 @@ class CompactsTest {
             ChatRules.evaluate("You are playing on profile: Mango (Co-op)", c))
     }
 
+    // Le compact doit être plus court que l'original : le tueur seul, la phrase saute.
+    @Test fun `player death compacted`() {
+        val c = cfg("playerDeath")
+        assertEquals(Verdict.Replace("§c☠ §7Timo §8· §cKuudra"),
+            ChatRules.evaluate("§c ☠ §r§7Timo §r§7was killed by §r§cKuudra§r§7.", c))
+        assertEquals(Verdict.Replace("§c☠ §7Timo §8· §cLost Adventurer §8(ghost)"),
+            ChatRules.evaluate("§c ☠ §r§7Timo §r§7was killed by §r§cLost Adventurer §r§7and became a ghost§r§7.", c))
+        assertEquals(Verdict.Replace("§c☠ §7Timo §8· §7fell"),
+            ChatRules.evaluate("§c ☠ §r§7Timo §r§7fell to their death§r§7.", c))
+    }
+
     @Test fun `notifications compacted`() {
         val c = cfg("notifications")
         assertEquals(Verdict.Replace("§aTipped §f12 §7(4 games)"),

@@ -4,6 +4,7 @@ import com.simplechat.config.RuleConfig
 import com.simplechat.engine.ChatRules
 import com.simplechat.engine.RuleAction
 import com.simplechat.engine.Verdict
+import com.simplechat.rules.islands.Mining
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
@@ -12,8 +13,9 @@ import org.junit.jupiter.api.Test
 class MiningSummaryTest {
 
     private val cfg = RuleConfig.DEFAULT
-    private val bar = "§e§l" + "▬".repeat(64)
-    private val otherBar = "§3§l" + "▬".repeat(64)
+    // Tel que ComponentLegacy le rend : un §r ouvre chaque segment, avant la couleur.
+    private val bar = "§r§d§l" + "▬".repeat(64)
+    private val otherBar = "§r§3§l" + "▬".repeat(64)
 
     private fun feed(raw: String, config: RuleConfig = cfg) =
         MiningSummary.process(ChatRules.clean(raw), raw, config)
@@ -46,6 +48,16 @@ class MiningSummaryTest {
     @Test fun `bars of another color are left alone`() {
         assertNull(feed(otherBar))
         assertNull(feed("  §r§6§lCHEST LOCKPICKED"))
+    }
+
+    // Les barres du "CRYSTAL FOUND" tombent avec le réglage Crystals ; le milieu va aux règles.
+    @Test fun `crystal found bars follow the Crystals setting`() {
+        val crystalBar = "§r§5§l" + "▬".repeat(64)
+        assertEquals(Verdict.Hide, feed(crystalBar))
+        assertNull(feed("§f                       §r§5§l✦ CRYSTAL FOUND §r§7(1§r§7/5§r§7)"))
+        assertEquals(Verdict.Hide, feed(crystalBar))
+        val off = cfg.copy(groupActions = mapOf(Mining.CRYSTAL.id to RuleAction.OFF))
+        assertNull(feed(crystalBar, off))
     }
 
     // Une ligne inattendue rend la main : sans ça le pavé avalerait la suite du chat.
