@@ -58,12 +58,6 @@ Settings are also reachable through **Mod Menu** (26.1), and there's a **Discord
 - [Fabric API](https://modrinth.com/mod/fabric-api)
 - [Fabric Language Kotlin](https://modrinth.com/mod/fabric-language-kotlin)
 
-## Install
-
-1. Install Fabric Loader for your Minecraft version.
-2. Drop `HypixelSimpleChat-1.0.0.jar` into your `mods` folder, along with Fabric API and Fabric Language Kotlin. One universal jar covers 26.1.2 and 26.2.
-3. Launch, join Hypixel, run `/hsc`.
-
 ## License
 
 [LGPL-3.0](LICENSE) © Tjiba
