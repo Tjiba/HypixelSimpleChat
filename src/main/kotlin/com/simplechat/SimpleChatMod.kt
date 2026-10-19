@@ -82,6 +82,9 @@ object SimpleChatMod : ClientModInitializer {
 
         // Quitter le jeu avec le menu ouvert : removed() ne passe pas, la config resterait en RAM.
         ClientLifecycleEvents.CLIENT_STOPPING.register { Settings.save() }
+        net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.DISCONNECT.register { _, _ ->
+            com.simplechat.engine.UnreadChannels.reset()
+        }
 
         ClientTickEvents.END_CLIENT_TICK.register { client ->
             if (!pendingConfig) return@register

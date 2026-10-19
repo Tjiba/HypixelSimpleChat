@@ -1,6 +1,9 @@
 package com.simplechat.config
 
 import com.google.gson.JsonObject
+import com.simplechat.engine.PersonalAction
+import com.simplechat.engine.PersonalChannel
+import com.simplechat.engine.PersonalRule
 import java.awt.Color
 
 /** Mode d'affichage d'un canal. */
@@ -52,11 +55,15 @@ object Settings : HscConfig("simplechat/config") {
 
     var chatTabs by boolean(true) {
         name = "Enable chat tabs"
-        description = "Show the All/Party/Guild tab row above the chat input"
+        description = "Show All/Local/Party/Guild tabs. Local excludes Party, Guild and Officer in filter mode"
     }
     var tabFilterMode by boolean(false) {
         name = "Only show channel messages while selected"
         description = "When you select a tab. On: show only that channel's messages · Off: send your messages to that channel"
+    }
+    var unreadNotifications by boolean(true) {
+        name = "Unread message counters"
+        description = "Show unread counts on Party and Guild tabs in channel filter mode. Off clears the counters"
     }
 
     /** Pseudos en sourdine, tels que saisis dans le menu. */
@@ -86,6 +93,13 @@ object Settings : HscConfig("simplechat/config") {
     // Config d'avant les réglages par phrase : chaque phrase reprend la valeur de son groupe.
     override fun migrate(root: JsonObject) {
         RuleSettings.migrate(root)
+        if (SkyBlockCleanup.customPatterns.isNotBlank()) {
+            val legacy = SkyBlockCleanup.customPatterns.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+                .map { PersonalRule(text = it, action = PersonalAction.HIDE,
+                    channel = PersonalChannel.SYSTEM, caseSensitive = true) }
+            PersonalRules.replace(PersonalRules.list() + legacy)
+            SkyBlockCleanup.customPatterns = ""
+        }
         // Config d'avant le simple on/off : une fenêtre à 0 seconde valait « ne regroupe pas ».
         val seconds = runCatching { root.get("groupingWindowSeconds")?.asInt }.getOrNull() ?: return
         groupRepeats = seconds > 0
@@ -98,6 +112,7 @@ object Settings : HscConfig("simplechat/config") {
         category(LobbyCleanup)
         category(SkyBlockCleanup)
         category(SystemCat)
+        category(PersonalRules)
         RuleSettings.register()
     }
 }

@@ -6,6 +6,7 @@ import com.simplechat.engine.ChannelStyle
 import com.simplechat.engine.GuildBridgeConfig
 import com.simplechat.engine.PublicPrefixToggles
 import com.simplechat.engine.RuleAction
+import com.simplechat.engine.PersonalRule
 import com.simplechat.engine.SelfPlayer
 import com.simplechat.rules.Registry
 
@@ -38,6 +39,7 @@ data class RuleConfig(
     val compactThemeColor: Int = 0x55FFFF,
     val bazaarItemsColor: Int = 0xFFAA00,
     val bazaarSalesColor: Int = 0x00AAAA,
+    val personalRules: List<PersonalRule> = emptyList(),
 ) {
     companion object {
         private const val RGB = 0xFFFFFF
@@ -129,6 +131,7 @@ data class RuleConfig(
             compactThemeColor = Settings.compactThemeColor and 0xFFFFFF,
             bazaarItemsColor = SkyBlockCleanup.bazaarItemsColor and RGB,
             bazaarSalesColor = SkyBlockCleanup.bazaarSalesColor and RGB,
+            personalRules = PersonalRules.list(),
         )
     }
 }

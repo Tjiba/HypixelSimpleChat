@@ -1,5 +1,6 @@
 package com.simplechat.mixin;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import com.simplechat.HscChatAccess;
 import com.simplechat.IHscChat;
 import com.simplechat.config.Settings;
@@ -13,7 +14,6 @@ import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.multiplayer.chat.GuiMessage;
 import net.minecraft.network.chat.Component;
-import org.lwjgl.glfw.GLFW;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -24,7 +24,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
  * Interactions chat : clic-droit = copie (+ « Copied! »), Ctrl+F = recherche live,
- * onglets All/Party/Guild au-dessus de la saisie (filtre OU routage d'envoi selon le réglage).
+ * onglets All/Local/Party/Guild au-dessus de la saisie (filtre OU routage d'envoi selon le réglage).
  * Tout est confort : require=0 partout — si un patch MC casse un injector, la feature se
  * désactive au lieu de crasher le jeu.
  */
@@ -32,15 +32,21 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public class ChatScreenMixin {
 
     private static final long HSC_FEEDBACK_MS = 1000L;
-    private static final String[] HSC_TABS = {"All", "Party", "Guild"};
+    private static final String[] HSC_TABS = {"All", "Local", "Party", "Guild"};
 
     private static boolean hsc$searchMode;
     private static String hsc$applied;
     private static int hsc$matches = -1;
-    private static int hsc$tab = 0; // 0=All,1=Party,2=Guild
+    private static int hsc$tab = 0; // 0=All,1=Local,2=Party,3=Guild
 
     @Shadow
     protected EditBox input;
+
+    private String hsc$tabLabel(int tab) {
+        if (!Settings.INSTANCE.getChatTabs() || !Settings.INSTANCE.getTabFilterMode() || !Settings.INSTANCE.getUnreadNotifications()) return HSC_TABS[tab];
+        int count = com.simplechat.engine.UnreadChannels.INSTANCE.count(tab);
+        return count == 0 ? HSC_TABS[tab] : HSC_TABS[tab] + " · " + count;
+    }
 
     /** Rectangles {x1,y1,x2,y2} des onglets — source unique pour le rendu ET le clic. */
     private int[][] hsc$tabRects() {
@@ -49,7 +55,7 @@ public class ChatScreenMixin {
         int tx = input.getX();
         int ty = input.getY() - 14;
         for (int i = 0; i < HSC_TABS.length; i++) {
-            int w = font.width(HSC_TABS[i]) + 8;
+            int w = font.width(hsc$tabLabel(i)) + 8;
             rects[i] = new int[]{tx, ty, tx + w, ty + 12};
             tx += w + 3;
         }
@@ -57,7 +63,7 @@ public class ChatScreenMixin {
     }
 
     @Inject(method = "<init>", at = @At("TAIL"), require = 0)
-    private void hsc$reset(String s, boolean b, CallbackInfo ci) {
+    private void hsc$reset(CallbackInfo ci) {
         hsc$searchMode = false;
         hsc$applied = null;
         IHscChat c = HscChatAccess.current;
@@ -70,19 +76,15 @@ public class ChatScreenMixin {
     // Routage d'envoi : en mode « send » (filtre off), préfixe le message selon l'onglet actif.
     @ModifyVariable(method = "handleChatInput", at = @At("HEAD"), argsOnly = true, ordinal = 0, require = 0)
     private String hsc$routeSend(String message) {
-        if (!Settings.INSTANCE.getChatTabs() || Settings.INSTANCE.getTabFilterMode()) return message;
-        if (message == null || message.isEmpty() || message.startsWith("/")) return message;
-        return switch (hsc$tab) {
-            case 1 -> "/pc " + message;
-            case 2 -> "/gc " + message;
-            default -> message; // All : pas de routage
-        };
+        if (message == null) return null;
+        return com.simplechat.engine.ChatChannel.INSTANCE.route(message,
+                Settings.INSTANCE.getChatTabs(), Settings.INSTANCE.getTabFilterMode(), hsc$tab);
     }
 
     @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true, require = 0)
     private void hsc$onClick(MouseButtonEvent event, boolean doubleClick, CallbackInfoReturnable<Boolean> cir) {
         // Clic gauche sur un onglet (si activés, cachés pendant une commande).
-        if (event.button() == 0 && !hsc$searchMode && Settings.INSTANCE.getChatTabs() && !input.getValue().startsWith("/")) {
+        if (event.button() == InputConstants.getKey("key.mouse.left").getValue() && !hsc$searchMode && Settings.INSTANCE.getChatTabs() && !input.getValue().startsWith("/")) {
             int[][] rects = hsc$tabRects();
             for (int i = 0; i < rects.length; i++) {
                 int[] r = rects[i];
@@ -94,7 +96,7 @@ public class ChatScreenMixin {
             }
         }
         // Clic droit = copie.
-        if (event.button() == 1) {
+        if (event.button() == InputConstants.getKey("key.mouse.right").getValue()) {
             IHscChat chat = HscChatAccess.current;
             if (chat == null) return;
             GuiMessage msg = chat.hsc$messageAt(event.x(), event.y());
@@ -119,8 +121,8 @@ public class ChatScreenMixin {
     @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true, require = 0)
     private void hsc$searchKeys(KeyEvent event, CallbackInfoReturnable<Boolean> cir) {
         int key = event.key();
-        boolean ctrl = (event.modifiers() & GLFW.GLFW_MOD_CONTROL) != 0;
-        if (key == GLFW.GLFW_KEY_F && ctrl) {
+        boolean ctrl = event.hasControlDown();
+        if (key == InputConstants.getKey("key.keyboard.f").getValue() && ctrl) {
             hsc$searchMode = !hsc$searchMode;
             input.setValue("");
             hsc$applied = null;
@@ -128,7 +130,7 @@ public class ChatScreenMixin {
             cir.setReturnValue(true);
             return;
         }
-        if (hsc$searchMode && (key == GLFW.GLFW_KEY_ESCAPE || key == GLFW.GLFW_KEY_ENTER || key == GLFW.GLFW_KEY_KP_ENTER)) { // sortir
+        if (hsc$searchMode && (key == InputConstants.getKey("key.keyboard.escape").getValue() || key == InputConstants.getKey("key.keyboard.enter").getValue() || key == InputConstants.getKey("key.keyboard.keypad.enter").getValue())) { // sortir
             hsc$searchMode = false;
             input.setValue("");
             hsc$applied = null;
@@ -145,6 +147,8 @@ public class ChatScreenMixin {
     @Inject(method = "extractRenderState", at = @At("TAIL"), require = 0)
     private void hsc$overlay(GuiGraphicsExtractor gfx, int mouseX, int mouseY, float delta, CallbackInfo ci) {
         Font font = Minecraft.getInstance().font;
+        com.simplechat.engine.UnreadChannels.INSTANCE.select(
+                Settings.INSTANCE.getChatTabs() && Settings.INSTANCE.getTabFilterMode() && Settings.INSTANCE.getUnreadNotifications(), hsc$tab);
 
         // Feedback « Copied! ».
         long dt = System.currentTimeMillis() - HscChatAccess.copyTime;
@@ -188,7 +192,7 @@ public class ChatScreenMixin {
                 int[] r = rects[i];
                 boolean active = i == hsc$tab;
                 gfx.fill(r[0], r[1], r[2], r[3], active ? 0xE84A5BD0 : 0xD8202028);
-                gfx.text(font, Component.literal(HSC_TABS[i]), r[0] + 4, r[1] + 2, active ? 0xFFFFFFFF : 0xFFB0B0B8);
+                gfx.text(font, Component.literal(hsc$tabLabel(i)), r[0] + 4, r[1] + 2, active ? 0xFFFFFFFF : 0xFFB0B0B8);
             }
         }
     }

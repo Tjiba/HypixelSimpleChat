@@ -1,5 +1,6 @@
 package com.simplechat.mixin;
 
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.simplechat.HscChatAccess;
 import com.simplechat.IHscChat;
 import com.simplechat.config.RuleConfig;
@@ -20,9 +21,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.gen.Accessor;
 import org.spongepowered.asm.mixin.gen.Invoker;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Constant;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.ModifyConstant;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
@@ -86,7 +85,7 @@ public abstract class ChatHudMixin implements IHscChat {
     @Shadow
     public abstract void resetChatScroll();
 
-    private int hsc$tabCode = 0;   // 0=All, 1=Party, 2=Guild(+Officer)
+    private int hsc$tabCode = 0;   // 0=All, 1=Local, 2=Party, 3=Guild(+Officer)
     private String hsc$query = "";
     // Filtre en cours (onglet + recherche), null quand on affiche tout.
     private java.util.function.Predicate<GuiMessage> hsc$pred = null;
@@ -95,6 +94,8 @@ public abstract class ChatHudMixin implements IHscChat {
     @Override
     public void hsc$setChannelFilter(int tabCode) {
         hsc$tabCode = tabCode;
+        com.simplechat.engine.UnreadChannels.INSTANCE.select(
+                com.simplechat.config.Settings.INSTANCE.getChatTabs() && com.simplechat.config.Settings.INSTANCE.getTabFilterMode() && com.simplechat.config.Settings.INSTANCE.getUnreadNotifications(), tabCode);
         hsc$reapplyFilter();
     }
 
@@ -118,8 +119,10 @@ public abstract class ChatHudMixin implements IHscChat {
             if (tab != 0) {
                 com.simplechat.engine.Channel ch = hsc$channelOf(content, cfg);
                 boolean ok = switch (tab) {
-                    case 1 -> ch == com.simplechat.engine.Channel.PARTY;
-                    case 2 -> ch == com.simplechat.engine.Channel.GUILD || ch == com.simplechat.engine.Channel.OFFICER;
+                    case 1 -> ch != com.simplechat.engine.Channel.PARTY && ch != com.simplechat.engine.Channel.GUILD
+                            && ch != com.simplechat.engine.Channel.OFFICER;
+                    case 2 -> ch == com.simplechat.engine.Channel.PARTY;
+                    case 3 -> ch == com.simplechat.engine.Channel.GUILD || ch == com.simplechat.engine.Channel.OFFICER;
                     default -> true;
                 };
                 if (!ok) return false;
@@ -215,10 +218,11 @@ public abstract class ChatHudMixin implements IHscChat {
 
     // Historique étendu : remplace la limite vanilla de 100 (allMessages + lignes visibles) par le réglage.
     // require=0 : si un patch MC déplace la constante, on retombe sur les 100 vanilla au lieu de crasher.
+    // Composable avec Skysoft : ne réserve pas la constante et conserve une limite déjà plus grande.
     // TODO le 2048 est aussi en dur dans Collapse.MAX_KEYS et dans le réglage, à factoriser.
-    @ModifyConstant(method = {"addMessageToQueue", "addMessageToDisplayQueue"}, constant = @Constant(intValue = 100), require = 0)
+    @ModifyExpressionValue(method = {"addMessageToQueue", "addMessageToDisplayQueue"}, at = @At(value = "CONSTANT", args = "intValue=100"), require = 0)
     private int hsc$maxHistory(int original) {
-        return Math.max(100, Math.min(2048, com.simplechat.config.Settings.INSTANCE.getMaxMessages()));
+        return Math.max(original, Math.max(100, Math.min(2048, com.simplechat.config.Settings.INSTANCE.getMaxMessages())));
     }
 
     @Inject(
@@ -243,6 +247,15 @@ public abstract class ChatHudMixin implements IHscChat {
         }
         hsc$lastBlank = null;
         if (warned && clean.isEmpty()) { ci.cancel(); return; }
+        // Un filtre personnel masque avant les lots pour ne pas réintroduire le texte dans un résumé.
+        String giftTotals = hsc$treeGiftTotals(clean, legacy, original);
+        com.simplechat.engine.PersonalRule personal = null;
+        if (cfg.getMasterEnabled()) {
+            for (com.simplechat.engine.PersonalRule rule : cfg.getPersonalRules()) {
+                if (rule.matches(legacy, ChatRules.INSTANCE.classify(clean))) { personal = rule; break; }
+            }
+        }
+        if (personal != null && personal.getAction() == com.simplechat.engine.PersonalAction.HIDE) { ci.cancel(); return; }
         Verdict v = com.simplechat.SafariSummary.INSTANCE.process(clean, cfg);
         // Le pavé de coffre se reconnaît à la couleur de ses barres : il lui faut le brut.
         if (v == null) v = com.simplechat.MiningSummary.INSTANCE.process(clean, legacy, cfg);
@@ -255,10 +268,11 @@ public abstract class ChatHudMixin implements IHscChat {
         Verdict batch = com.simplechat.BazaarSummary.INSTANCE.process(clean, legacy, v, cfg);
         if (batch != null) v = batch;
 
-        // Compté avant le masquage : un gift caché doit quand même entrer dans le total.
-        String giftTotals = hsc$treeGiftTotals(clean, legacy, original);
-
         if (v instanceof Verdict.Hide) { ci.cancel(); return; }
+
+        com.simplechat.engine.UnreadChannels.INSTANCE.select(
+                com.simplechat.config.Settings.INSTANCE.getChatTabs() && com.simplechat.config.Settings.INSTANCE.getTabFilterMode() && com.simplechat.config.Settings.INSTANCE.getUnreadNotifications(), hsc$tabCode);
+        com.simplechat.engine.UnreadChannels.INSTANCE.received(ChatRules.INSTANCE.classify(clean));
 
         // #2 : préserver les items/entités linkés -> ne pas reformater un message joueur qui en contient.
         if (v instanceof Verdict.Segments && hsc$hasItemLink(original)) {
@@ -307,6 +321,10 @@ public abstract class ChatHudMixin implements IHscChat {
             base = hsc$withHover(base, original, giftTotals);
         }
         boolean untouched = v instanceof Verdict.Pass && !warned;
+        if (personal != null) {
+            base = com.simplechat.engine.SegRender.highlight(base, personal);
+            untouched = false;
+        }
         hsc$display(base, key, untouched, system, cfg, signature, source, tag, ci);
     }
 

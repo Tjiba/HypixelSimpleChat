@@ -7,7 +7,7 @@ public interface IHscChat {
     /** Message affiché sous (mouseX, mouseY) en coords écran, ou null. */
     GuiMessage hsc$messageAt(double mouseX, double mouseY);
 
-    /** Filtre d'onglet : 0=All, 1=Party, 2=Guild(+Officer). Combiné à la recherche courante. */
+    /** Filtre d'onglet : 0=All, 1=Local, 2=Party, 3=Guild(+Officer). Combiné à la recherche courante. */
     void hsc$setChannelFilter(int tabCode);
 
     /** Applique une recherche (tokens AND, insensible casse), combinée au filtre d'onglet.

@@ -10,6 +10,7 @@
   "compactThemeColor": -11141121,
   "chatTabs": true,
   "tabFilterMode": false,
+  "unreadNotifications": true,
   "Guild Chat": {
     "mode": "COMPACT",
     "showRank": false,

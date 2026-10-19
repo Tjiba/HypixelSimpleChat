@@ -4,15 +4,16 @@ plugins {
     id 'maven-publish'
 }
 
-def mcTarget = (project.findProperty('mc') ?: '26.2').toString()
-// Jar universel : mêmes sources et mêmes intermediary sur tout 26.x → un seul jar publié
-// (build 26.2). La cible 26.1 sert de vérification de compilation (CI).
+def mcTarget = (project.findProperty('mc') ?: '26.3').toString()
+// Jar commun aux versions testées ci-dessous. Les entrées sont résolues par nom
+// pour rester compatibles avec GLFW (26.1/26.2) et SDL (26.3).
 def mcSets = [
     '26.1': [minecraft: '26.1.2', fabric_api: '0.151.0+26.1.2', modmenu: '18.0.0-beta.1'],
     '26.2': [minecraft: '26.2',   fabric_api: '0.153.0+26.2',   modmenu: '19.0.0-alpha.1'],
+    '26.3': [minecraft: '26.3',   fabric_api: '0.161.0+26.3',   modmenu: '21.0.0-beta.1'],
 ]
 def mcv = mcSets[mcTarget]
-if (mcv == null) throw new GradleException("Unknown -Pmc=${mcTarget} (use 26.1 or 26.2)")
+if (mcv == null) throw new GradleException("Unknown -Pmc=${mcTarget} (use 26.1, 26.2 or 26.3)")
 
 version = project.mod_version
 group = project.maven_group

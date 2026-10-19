@@ -1,11 +1,16 @@
 package com.simplechat.ui
 
+import com.mojang.blaze3d.platform.InputConstants
 import com.simplechat.Updater
 import com.simplechat.config.ConfigEntry
 import com.simplechat.config.ConfigGroup
 import com.simplechat.config.EntryKind
 import com.simplechat.config.RuleConfig
 import com.simplechat.config.Settings
+import com.simplechat.config.PersonalRules
+import com.simplechat.config.PersonalRuleSettings
+import com.simplechat.engine.PersonalAction
+import com.simplechat.engine.PersonalRule
 import com.simplechat.engine.LegacyText
 import com.simplechat.engine.RuleAction
 import com.simplechat.engine.SegRender
@@ -17,7 +22,6 @@ import net.minecraft.client.input.CharacterEvent
 import net.minecraft.client.input.KeyEvent
 import net.minecraft.client.input.MouseButtonEvent
 import net.minecraft.network.chat.Component
-import org.lwjgl.glfw.GLFW
 
 /**
  * Menu de config 100% custom. Fenêtre en verre translucide, coins arrondis,
@@ -39,6 +43,11 @@ class MenuScreen(private val parent: Screen?) : Screen(
     private var openDropdown: Setting? = null
     private var dropdownConstants: List<Enum<*>> = emptyList()
     private var focused: Setting? = null
+        set(value) {
+            if (field === value) return
+            field = value
+            Screens.textInputFocus(this, value != null || searchFocused)
+        }
     private var editBuffer = ""
     private var previewLines: List<PreviewEntry> = emptyList()
     // Survols des lignes d'aperçu, position notée au rendu : le tooltip passe après.
@@ -53,6 +62,11 @@ class MenuScreen(private val parent: Screen?) : Screen(
     // Recherche globale : filtre les réglages de toutes les catégories (titre + description).
     private var searchQuery = ""
     private var searchFocused = false
+        set(value) {
+            if (field == value) return
+            field = value
+            Screens.textInputFocus(this, value || focused != null)
+        }
 
     init { select(null) }
 
@@ -65,6 +79,13 @@ class MenuScreen(private val parent: Screen?) : Screen(
         val bulkIds: List<String>? = null,
     ) : Item()
     private object PresetRow : Item()
+    private class PersonalButton(val index: Int?) : Item()
+    private class PersonalHeader(val index: Int, val row: PersonalRuleSettings) : Item()
+    private var expandedRule: PersonalRuleSettings? = null
+    private var personalRows: MutableList<PersonalRuleSettings>? = null
+
+    private fun personalRows(): MutableList<PersonalRuleSettings> = personalRows
+        ?: PersonalRules.list().map { PersonalRuleSettings(it) }.toMutableList().also { personalRows = it }
     // Aperçu : les mêmes en-têtes de section qu'à gauche, puis les lignes de chat.
     private sealed class PreviewEntry
     private class PreviewHeader(val title: String) : PreviewEntry()
@@ -178,7 +199,17 @@ class MenuScreen(private val parent: Screen?) : Screen(
 
     private fun settingsOf(cfg: ConfigGroup): LinkedHashMap<String, Setting> {
         val byId = LinkedHashMap<String, Setting>()
+        if (cfg === PersonalRules) {
+            personalRows().forEachIndexed { index, row ->
+                for (entry in row.entries.values) {
+                    val id = "custom:$index:${entry.id}"
+                    byId[id] = Setting(entry, id, entry.title, kindOf(entry), entry.description)
+                }
+            }
+            return byId
+        }
         for (entry in cfg.entries.values) {
+            if (entry.id == "customPatterns") continue
             byId[entry.id] = Setting(entry, entry.id, entry.title, kindOf(entry), entry.description)
         }
         return byId
@@ -202,6 +233,17 @@ class MenuScreen(private val parent: Screen?) : Screen(
             return
         }
         val byId = settingsOf(categoryConfig(currentCategory))
+        if (currentCategory == PersonalRules.id) {
+            items.add(PersonalButton(null))
+            personalRows().forEachIndexed { index, row ->
+                items.add(PersonalHeader(index, row))
+                if (expandedRule === row) {
+                    items.addAll(byId.filterKeys { it.startsWith("custom:$index:") }.values)
+                    items.add(PersonalButton(index))
+                }
+            }
+            return
+        }
         // Sections sans onglets (ex. General) : header par section (titre vide = pas de header).
         val flat = FLAT_SECTIONS[currentCategory]
         if (flat != null) {
@@ -252,6 +294,20 @@ class MenuScreen(private val parent: Screen?) : Screen(
 
     private fun rebuildPreview() {
         val cfg = RuleConfig.current()
+        if (currentCategory == PersonalRules.id && searchQuery.isEmpty()) {
+            previewLines = personalRows().mapIndexed { index, row ->
+                val rule = row.rule()
+                val example = rule.text.ifBlank { "Your text here" }
+                val color = if (!rule.enabled) 0x777777 else rule.color
+                val line = com.simplechat.engine.Seg(example, color,
+                    bold = rule.enabled && rule.action == PersonalAction.HIGHLIGHT && rule.bold,
+                    italic = rule.enabled && rule.action == PersonalAction.HIGHLIGHT && rule.italic,
+                    underlined = rule.enabled && rule.action == PersonalAction.HIGHLIGHT && rule.underlined,
+                    strikethrough = rule.enabled && rule.action == PersonalAction.HIDE)
+                listOf(PreviewHeader("RULE ${index + 1}"), PreviewText(SegRender.toComponent(listOf(line)), null))
+            }.flatten()
+            return
+        }
         // Pages de canal : lignes fixes, pas de section à reprendre.
         if (searchQuery.isEmpty() && VIEWS[currentCategory] == null) {
             previewLines = Preview.forSettings(cfg, currentCategory, emptyList()).map { it.toEntry() }
@@ -300,6 +356,8 @@ class MenuScreen(private val parent: Screen?) : Screen(
     // Le drag du picker attend le relâchement, sinon c'est un write par frame.
     private fun onValueChanged() {
         presetChoice = null
+        if (!Settings.unreadNotifications) com.simplechat.engine.UnreadChannels.reset()
+        personalRows?.let { rows -> PersonalRules.replace(rows.map { it.rule() }) }
         rebuildPreview()
         if (pickerDrag == 0) Settings.save()
     }
@@ -342,7 +400,7 @@ class MenuScreen(private val parent: Screen?) : Screen(
             val hover = inRect(mx, my, n.x1, n.y1, n.x2, n.y2)
             if (on) rr(gfx, n.x1, n.y1, n.x2, n.y2, 5, MenuTheme.ACCENT)
             else if (hover) rr(gfx, n.x1, n.y1, n.x2, n.y2, 5, MenuTheme.NAV_HOVER)
-            gfx.text(font, n.label, n.x1 + 8, n.y1 + (MenuTheme.NAV_H - font.lineHeight) / 2, if (on) MenuTheme.TEXT_TITLE else MenuTheme.TEXT_DIM)
+            gfx.text(font, n.label, n.x1 + 8, n.y1 + (n.y2 - n.y1 - font.lineHeight) / 2, if (on) MenuTheme.TEXT_TITLE else MenuTheme.TEXT_DIM)
         }
     }
 
@@ -363,6 +421,23 @@ class MenuScreen(private val parent: Screen?) : Screen(
                 is Header -> renderHeader(gfx, item, itop)
                 is Setting -> renderRow(gfx, item, itop, mx, my)
                 is PresetRow -> renderPresetRow(gfx, itop, mx, my)
+                is PersonalHeader -> {
+                    val hover = inRect(mx, my, x1 + 4, itop, x2 - 4, itop + h)
+                    rr(gfx, x1 + 4, itop + 1, x2 - 4, itop + h - 1, 4,
+                        if (hover) MenuTheme.FIELD_HOVER else MenuTheme.FIELD)
+                    val arrow = if (expandedRule === item.row) "v" else ">"
+                    val label = "$arrow Rule ${item.index + 1} · ${item.row.text.ifBlank { "Your text here" }}"
+                    gfx.text(font, font.plainSubstrByWidth(label, x2 - x1 - 20), x1 + 10,
+                        itop + (h - font.lineHeight) / 2, if (item.row.enabled) MenuTheme.TEXT else MenuTheme.TEXT_FAINT)
+                }
+                is PersonalButton -> {
+                    val b = widgetBoxAt(itop)
+                    val hover = inRect(mx, my, b[0], b[1], b[2], b[3])
+                    rr(gfx, b[0], b[1], b[2], b[3], 4, if (hover) MenuTheme.FIELD_HOVER else MenuTheme.FIELD)
+                    gfx.centeredText(font, if (item.index == null) "+ Add rule" else "Delete rule",
+                        (b[0] + b[2]) / 2, b[1] + 3, MenuTheme.TEXT)
+                    if (item.index == null) gfx.text(font, "Rules", mainX1() + 10, itop + 5, MenuTheme.TEXT_DIM)
+                }
             }
         }
         if (items.isEmpty()) {
@@ -418,7 +493,8 @@ class MenuScreen(private val parent: Screen?) : Screen(
                     else -> if (focused === row) editBuffer else row.entry.getString()
                 }
                 val txt = if (focused === row) "${value}_" else value
-                gfx.text(font, txt, b[0] + 6, b[1] + (MenuTheme.WIDGET_H - font.lineHeight) / 2, MenuTheme.TEXT)
+                gfx.text(font, font.plainSubstrByWidth(txt, b[2] - b[0] - 12, focused === row),
+                    b[0] + 6, b[1] + (MenuTheme.WIDGET_H - font.lineHeight) / 2, MenuTheme.TEXT)
             }
             Kind.COLOR -> {
                 val b = widgetBoxAt(top)
@@ -460,8 +536,10 @@ class MenuScreen(private val parent: Screen?) : Screen(
     }
 
     private fun applyPreset(recommended: Boolean) {
+        val personal = PersonalRules.rules
         if (recommended) { if (!Settings.applyRecommended()) Settings.resetToDefaults() }
         else Settings.resetToDefaults()
+        PersonalRules.rules = personal
         onValueChanged()
         presetChoice = if (recommended) "Recommended" else "Default" // après onValueChanged (qui l'efface)
     }
@@ -492,7 +570,7 @@ class MenuScreen(private val parent: Screen?) : Screen(
                 is PreviewText -> {
                     val h = font.wordWrapHeight(entry.text, w)
                     if (y + h >= ctop && y <= cbot) {
-                        gfx.textWithWordWrap(font, entry.text, x1 + 8, y, w, MenuTheme.TEXT)
+                        wrappedText(gfx, entry.text, x1 + 8, y, w)
                         if (entry.hover != null) previewHovers.add(
                             intArrayOf(x1 + 8, maxOf(y, ctop), x1 + 8 + font.width(entry.text), minOf(y + h, cbot)) to entry.hover)
                     }
@@ -519,13 +597,6 @@ class MenuScreen(private val parent: Screen?) : Screen(
         gfx.text(font, Component.literal(if (ghHover) "§fGitHub" else "§7GitHub"), lx, fy, MenuTheme.TEXT_DIM)
         gfx.text(font, Component.literal("§8v${Updater.CURRENT_VERSION}"), lx + font.width("GitHub") + 10, fy, MenuTheme.TEXT_FAINT)
 
-        val dLabel = "Discord"
-        val dW = font.width(dLabel) + 16
-        val dX = mainX2() - dW
-        rr(gfx, dX, fy - 3, dX + dW, fy + 11, 5, MenuTheme.ACCENT)
-        gfx.centeredText(font, dLabel, dX + dW / 2, fy, MenuTheme.TEXT_TITLE)
-        val help = "§7Bug? Missing something? Want to help? §8→"
-        gfx.text(font, Component.literal(help), dX - 8 - font.width(Component.literal(help).string), fy, MenuTheme.TEXT_DIM)
     }
 
     /** Haut du popup dropdown : sous le widget, ou au-dessus si ça déborde de la fenêtre. */
@@ -602,12 +673,7 @@ class MenuScreen(private val parent: Screen?) : Screen(
         val fy = winY() + winH() - MenuTheme.FOOTER_H + (MenuTheme.FOOTER_H - font.lineHeight) / 2
         val lx = winX() + MenuTheme.PAD
         if (inRect(mx, my, lx, fy - 2, lx + font.width("GitHub"), fy + 10)) {
-            ConfirmLinkScreen.confirmLinkNow(this, "https://github.com/Tjiba/HypixelSimpleChat"); return true
-        }
-        val dW = font.width("Discord") + 16
-        val dX = mainX2() - dW
-        if (inRect(mx, my, dX, fy - 3, dX + dW, fy + 11)) {
-            ConfirmLinkScreen.confirmLinkNow(this, "https://discord.gg/AbyVvwqmUF"); return true
+            ConfirmLinkScreen.confirmLinkNow(this, java.net.URI.create("https://github.com/Tjiba/HypixelSimpleChat")); return true
         }
 
         if (inRect(mx, my, mainX1(), listTop(), settingsX2(), regionBottom())) {
@@ -615,17 +681,39 @@ class MenuScreen(private val parent: Screen?) : Screen(
             // et le faire pendant qu'on l'itère lèverait une ConcurrentModificationException.
             var hit: Item? = null
             var hitTop = 0
-            eachItem { item, itop, _ ->
-                if (hit == null && my >= itop && my <= itop + MenuTheme.ROW_H) { hit = item; hitTop = itop }
+            eachItem { item, itop, h ->
+                if (hit == null && my >= itop && my < itop + h) { hit = item; hitTop = itop }
             }
             when (val item = hit) {
                 is Setting -> handleRowClick(item, hitTop, mx, my)
+                is PersonalHeader -> {
+                    expandedRule = if (expandedRule === item.row) null else item.row
+                    picker = null; openDropdown = null
+                    refresh()
+                }
                 is PresetRow -> {
                     val y = presetBtnY(hitTop)
                     for ((label, x1, x2) in presetButtons(hitTop)) {
                         if (inRect(mx, my, x1, y, x2, y + MenuTheme.WIDGET_H)) {
                             applyPreset(label == "Recommended"); break
                         }
+                    }
+                }
+                is PersonalButton -> {
+                    val b = widgetBoxAt(hitTop)
+                    if (inRect(mx, my, b[0], b[1], b[2], b[3])) {
+                        val rows = personalRows()
+                        if (item.index == null) {
+                            val row = PersonalRuleSettings(PersonalRule())
+                            rows.add(row)
+                            expandedRule = row
+                        } else {
+                            val removed = rows.removeAt(item.index)
+                            if (expandedRule === removed) expandedRule = null
+                        }
+                        onValueChanged()
+                        refresh()
+                        if (item.index == null) scroll = maxScroll()
                     }
                 }
                 else -> {}
@@ -751,7 +839,14 @@ class MenuScreen(private val parent: Screen?) : Screen(
         if (y + h + 10 > height) y = my - h - 14
         gfx.nextStratum()
         rrb(gfx, x - 5, y - 4, x + w + 5, y + h + 4, 4, MenuTheme.GLASS, MenuTheme.GLASS_BORDER)
-        gfx.textWithWordWrap(font, text, x, y, w, MenuTheme.TEXT)
+        wrappedText(gfx, text, x, y, w)
+    }
+
+    // textWithWordWrap passe de void à int en 26.3 : sa signature binaire n'est plus commune.
+    private fun wrappedText(gfx: GuiGraphicsExtractor, text: Component, x: Int, y: Int, w: Int) {
+        font.split(text, w).forEachIndexed { i, line ->
+            gfx.text(font, line, x, y + i * font.lineHeight, MenuTheme.TEXT)
+        }
     }
 
     override fun mouseDragged(event: MouseButtonEvent, dx: Double, dy: Double): Boolean {
@@ -797,24 +892,24 @@ class MenuScreen(private val parent: Screen?) : Screen(
 
     override fun keyPressed(event: KeyEvent): Boolean {
         val key = event.key()
-        if (picker != null) { if (key == GLFW.GLFW_KEY_ESCAPE) picker = null; return true }
-        if (openDropdown != null) { if (key == GLFW.GLFW_KEY_ESCAPE) openDropdown = null; return true }
+        if (picker != null) { if (key == InputConstants.getKey("key.keyboard.escape").value) picker = null; return true }
+        if (openDropdown != null) { if (key == InputConstants.getKey("key.keyboard.escape").value) openDropdown = null; return true }
         if (searchFocused) {
             when (key) {
-                GLFW.GLFW_KEY_ESCAPE -> { searchQuery = ""; searchFocused = false; scroll = 0; previewScroll = 0; refresh() }
-                GLFW.GLFW_KEY_ENTER, GLFW.GLFW_KEY_KP_ENTER -> searchFocused = false
-                GLFW.GLFW_KEY_BACKSPACE -> if (searchQuery.isNotEmpty()) { searchQuery = searchQuery.dropLast(1); scroll = 0; previewScroll = 0; refresh() }
+                InputConstants.getKey("key.keyboard.escape").value -> { searchQuery = ""; searchFocused = false; scroll = 0; previewScroll = 0; refresh() }
+                InputConstants.getKey("key.keyboard.enter").value, InputConstants.getKey("key.keyboard.keypad.enter").value -> searchFocused = false
+                InputConstants.getKey("key.keyboard.backspace").value -> if (searchQuery.isNotEmpty()) { searchQuery = searchQuery.dropLast(1); scroll = 0; previewScroll = 0; refresh() }
             }
             return true
         }
         if (focused != null) {
             when (key) {
-                GLFW.GLFW_KEY_ESCAPE, GLFW.GLFW_KEY_ENTER -> { commitFocused(); focused = null }
-                GLFW.GLFW_KEY_BACKSPACE -> if (editBuffer.isNotEmpty()) editBuffer = editBuffer.dropLast(1)
+                InputConstants.getKey("key.keyboard.escape").value, InputConstants.getKey("key.keyboard.enter").value -> { commitFocused(); focused = null }
+                InputConstants.getKey("key.keyboard.backspace").value -> if (editBuffer.isNotEmpty()) editBuffer = editBuffer.dropLast(1)
             }
             return true
         }
-        if (key == GLFW.GLFW_KEY_ESCAPE) { onClose(); return true }
+        if (key == InputConstants.getKey("key.keyboard.escape").value) { onClose(); return true }
         return super.keyPressed(event)
     }
 
@@ -836,6 +931,8 @@ class MenuScreen(private val parent: Screen?) : Screen(
     // MC n'appelle onClose() que sur une fermeture volontaire. Un écran remplacé (déconnexion,
     // autre mod, fin de partie) passe par removed() : sans ça les réglages restent en RAM.
     override fun removed() {
+        if (focused != null) { commitFocused(); focused = null }
+        searchFocused = false
         Settings.save()
     }
 
@@ -858,17 +955,18 @@ class MenuScreen(private val parent: Screen?) : Screen(
         for (id in NAV_ORDER) if (id == null || id in available) order.add(id)
         for (id in available) if (id !in NAV_ORDER) order.add(id) // catégorie non listée → en fin
         val res = ArrayList<Rect>()
-        // Le tout-venant en haut ; Lobby et System, qu'on règle une fois, collés en bas.
+        val rowH = minOf(MenuTheme.NAV_H, (regionBottom() - regionTop() - (order.size - 1) * 3) / order.size)
+        // Custom Rules, Lobby et System restent collés en bas.
         var y = regionTop()
         for (id in order.filter { it !in NAV_BOTTOM }) {
-            res.add(Rect(id, id ?: "General", sideX1(), y, sideX2(), y + MenuTheme.NAV_H))
-            y += MenuTheme.NAV_H + 3
+            res.add(Rect(id, id ?: "General", sideX1(), y, sideX2(), y + rowH))
+            y += rowH + 3
         }
         val bottom = order.filter { it in NAV_BOTTOM }
-        y = regionBottom() - bottom.size * (MenuTheme.NAV_H + 3) + 3
+        y = regionBottom() - bottom.size * (rowH + 3) + 3
         for (id in bottom) {
-            res.add(Rect(id, id ?: "General", sideX1(), y, sideX2(), y + MenuTheme.NAV_H))
-            y += MenuTheme.NAV_H + 3
+            res.add(Rect(id, id ?: "General", sideX1(), y, sideX2(), y + rowH))
+            y += rowH + 3
         }
         return res
     }
@@ -914,15 +1012,15 @@ class MenuScreen(private val parent: Screen?) : Screen(
         private var presetChoice: String? = null
 
         // Ordre des catégories dans la sidebar (null = General).
-        private val NAV_ORDER = listOf<String?>(null, "Public Chat", "Party Chat", "Guild Chat", "SkyBlock", "Lobby", "System")
+        private val NAV_ORDER = listOf<String?>(null, "Public Chat", "Party Chat", "Guild Chat", "SkyBlock", "Custom Rules", "Lobby", "System")
         // Celles-ci s'accrochent au bas de la sidebar, à l'écart des catégories du quotidien.
-        private val NAV_BOTTOM = setOf<String?>("Lobby", "System")
+        private val NAV_BOTTOM = setOf<String?>("Custom Rules", "Lobby", "System")
 
         // Sections d'une catégorie SANS onglets (header par section ; titre vide = pas de header).
         private val FLAT_SECTIONS: Map<String?, LinkedHashMap<String, List<String>>> = mapOf(
             null to linkedMapOf(
                 "" to listOf("masterEnabled", "groupRepeats", "smartCollapse", "updateNotifications", "maxMessages", "showTimestamps", "timestampColor", "highlightSelf", "selfColor", "mutedPlayers", "compactTheme", "compactThemeColor"),
-                "CHAT TABS" to listOf("chatTabs", "tabFilterMode"),
+                "CHAT TABS" to listOf("chatTabs", "tabFilterMode", "unreadNotifications"),
             ),
         )
 
