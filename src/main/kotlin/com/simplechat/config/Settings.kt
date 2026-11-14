@@ -59,7 +59,11 @@ object Settings : HscConfig("simplechat/config") {
     }
     var tabFilterMode by boolean(false) {
         name = "Only show channel messages while selected"
-        description = "When you select a tab. On: show only that channel's messages · Off: send your messages to that channel"
+        description = "On: show only the selected channel's messages · Off: show all messages. Local/Party/Guild always send to their channel; All uses its own setting"
+    }
+    var allTabSendsToAllChat by boolean(false) {
+        name = "All tab sends to All chat"
+        description = "Send messages from the All tab with /ac, whether channel filtering is on or off. Off keeps your current Hypixel chat channel"
     }
     var unreadNotifications by boolean(true) {
         name = "Unread message counters"
@@ -78,17 +82,6 @@ object Settings : HscConfig("simplechat/config") {
         mutedPlayers = next.joinToString(", ")
         return true
     }
-
-    /** Preset bundlé (config recommandée). false si la ressource manque. */
-    fun applyRecommended(): Boolean {
-        val txt = javaClass.getResourceAsStream("/assets/simplechat/presets/recommended.json")
-            ?.bufferedReader()?.use { it.readText() } ?: return false
-        applyPreset(txt)
-        return true
-    }
-
-    // Tout premier lancement (aucun fichier config) : partir de la config recommandée.
-    override fun firstLaunch() { applyRecommended() }
 
     // Config d'avant les réglages par phrase : chaque phrase reprend la valeur de son groupe.
     override fun migrate(root: JsonObject) {

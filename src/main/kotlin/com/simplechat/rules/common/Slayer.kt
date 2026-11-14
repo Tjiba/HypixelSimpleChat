@@ -85,6 +85,7 @@ object Slayer {
      * règles reprennent la main ligne par ligne.
      */
     fun process(clean: String, cfg: RuleConfig): Verdict? {
+        if (!cfg.masterEnabled || !cfg.skyblockEnabled) { reset(); return null }
         // Hypixel aère ses pavés : une ligne vide au milieu d'un bloc n'interrompt aucune attente.
         if (clean.isEmpty()) return null
         start(clean, cfg)?.let { return it }
@@ -149,6 +150,10 @@ object Slayer {
     private var shown: String? = null
     private var stale: String? = null
     private var done = ""
+
+    fun reset() {
+        last = null; pending = false; capture = false; shown = null; stale = null; done = ""
+    }
 
     private fun merged(rule: Rule, cfg: RuleConfig) =
         cfg.masterEnabled && cfg.skyblockEnabled && Registry.actionOf(rule, cfg) == RuleAction.COMPACT

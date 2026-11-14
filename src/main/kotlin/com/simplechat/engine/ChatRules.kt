@@ -48,9 +48,12 @@ object ChatRules {
     private val CH_SPEAKER = Pattern.compile(
         "^(?:\\[(?:BOSS|NPC)] )?(?:Master )?(?:$DUNGEON_SPEAKERS|$FLOOR_BOSSES|$WORLD_BOSSES): ")
 
-    // Message joueur public : (préfixe niveau/emblème optionnel) rank/nom puis ": ".
+    // Les emblèmes peuvent se cumuler et inclure une lettre Unicode (Σ), contrairement aux pseudos.
+    internal const val PUBLIC_EMBLEMS = "(?:[^\\[\\w\\s]\\S* )*"
+
+    // Message joueur public : (préfixe niveau/emblèmes optionnels) rank/nom puis ": ".
     // [NPC] est un dialogue SYSTEM, pas un rank -> exclu via lookahead.
-    private val CH_PUBLIC = Pattern.compile("^(?!\\[NPC] )(?!\\[BOSS] )(?!\\[STATUE] )(?:\\[\\d{1,4}] )?(?:[^\\[\\w\\s]\\S* )?(?:\\[[A-Za-z+]+] )?[\\w]+: .+")
+    private val CH_PUBLIC = Pattern.compile("^(?!\\[NPC] )(?!\\[BOSS] )(?!\\[STATUE] )(?:\\[\\d{1,4}] )?$PUBLIC_EMBLEMS(?:\\[[A-Za-z+]+] )?[\\w]+: .+")
 
     fun classify(clean: String): Channel = when {
         CH_GUILD.matcher(clean).find() -> Channel.GUILD

@@ -24,7 +24,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
  * Interactions chat : clic-droit = copie (+ « Copied! »), Ctrl+F = recherche live,
- * onglets All/Local/Party/Guild au-dessus de la saisie (filtre OU routage d'envoi selon le réglage).
+ * onglets All/Local/Party/Guild au-dessus de la saisie (filtrage et routage d'envoi selon les réglages).
  * Tout est confort : require=0 partout — si un patch MC casse un injector, la feature se
  * désactive au lieu de crasher le jeu.
  */
@@ -69,20 +69,22 @@ public class ChatScreenMixin {
         IHscChat c = HscChatAccess.current;
         if (c != null) {
             c.hsc$applySearch("");
-            c.hsc$setChannelFilter(Settings.INSTANCE.getChatTabs() && Settings.INSTANCE.getTabFilterMode() ? hsc$tab : 0);
+            c.hsc$setChannelFilter(Settings.INSTANCE.getMasterEnabled() && Settings.INSTANCE.getChatTabs() && Settings.INSTANCE.getTabFilterMode() ? hsc$tab : 0);
         }
     }
 
-    // Routage d'envoi : en mode « send » (filtre off), préfixe le message selon l'onglet actif.
+    // Le filtre ne concerne que l'affichage ; l'envoi suit toujours l'onglet actif.
     @ModifyVariable(method = "handleChatInput", at = @At("HEAD"), argsOnly = true, ordinal = 0, require = 0)
     private String hsc$routeSend(String message) {
         if (message == null) return null;
         return com.simplechat.engine.ChatChannel.INSTANCE.route(message,
-                Settings.INSTANCE.getChatTabs(), Settings.INSTANCE.getTabFilterMode(), hsc$tab);
+                Settings.INSTANCE.getMasterEnabled() && Settings.INSTANCE.getChatTabs(), hsc$tab,
+                Settings.INSTANCE.getAllTabSendsToAllChat());
     }
 
     @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true, require = 0)
     private void hsc$onClick(MouseButtonEvent event, boolean doubleClick, CallbackInfoReturnable<Boolean> cir) {
+        if (!Settings.INSTANCE.getMasterEnabled()) return;
         // Clic gauche sur un onglet (si activés, cachés pendant une commande).
         if (event.button() == InputConstants.getKey("key.mouse.left").getValue() && !hsc$searchMode && Settings.INSTANCE.getChatTabs() && !input.getValue().startsWith("/")) {
             int[][] rects = hsc$tabRects();
@@ -120,6 +122,7 @@ public class ChatScreenMixin {
 
     @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true, require = 0)
     private void hsc$searchKeys(KeyEvent event, CallbackInfoReturnable<Boolean> cir) {
+        if (!Settings.INSTANCE.getMasterEnabled()) return;
         int key = event.key();
         boolean ctrl = event.hasControlDown();
         if (key == InputConstants.getKey("key.keyboard.f").getValue() && ctrl) {
@@ -146,6 +149,7 @@ public class ChatScreenMixin {
 
     @Inject(method = "extractRenderState", at = @At("TAIL"), require = 0)
     private void hsc$overlay(GuiGraphicsExtractor gfx, int mouseX, int mouseY, float delta, CallbackInfo ci) {
+        if (!Settings.INSTANCE.getMasterEnabled()) return;
         Font font = Minecraft.getInstance().font;
         com.simplechat.engine.UnreadChannels.INSTANCE.select(
                 Settings.INSTANCE.getChatTabs() && Settings.INSTANCE.getTabFilterMode() && Settings.INSTANCE.getUnreadNotifications(), hsc$tab);

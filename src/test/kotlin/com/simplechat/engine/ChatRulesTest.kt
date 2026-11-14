@@ -260,6 +260,16 @@ class ChatRulesTest {
             "§6COLLECTION LEVEL UP §eRuby Veilshroom §7V➜VI  §aREWARDS  §9Veilshroom Bunch §7Recipe  §b+4 SkyBlock XP", cfg))
     }
 
+    @Test fun `skyblock xp progress without milestone is not treated as a milestone`() {
+        assertEquals(Verdict.Replace("§b+2 SB XP"),
+            ChatRules.evaluate("§b+2 SkyBlock XP §8(69/100)", cfg))
+    }
+
+    @Test fun `museum donation keeps its item and embedded skyblock xp`() {
+        assertEquals(Verdict.Pass, ChatRules.evaluate(
+            "§r§aYou donated your §r§aZombie Mask §r§ato the §r§cCombat §r§asection of the Museum! §r§b+2 SkyBlock XP", cfg))
+    }
+
     // Tout ce qui annonce de l'XP reste visible par défaut : un gain qu'on ne voit plus passe
     // pour perdu. Raccourci, pas masqué.
     @Test fun `xp gains are shortened, never hidden by default`() {

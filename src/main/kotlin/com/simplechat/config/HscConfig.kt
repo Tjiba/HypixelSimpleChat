@@ -96,15 +96,12 @@ abstract class HscConfig(path: String, dir: Path = FabricLoader.getInstance().co
 
     protected fun category(cat: HscCategory) { categories[cat.id] = cat }
 
-    /** Appelé quand aucun fichier config n'existe (tout premier lancement). */
-    protected open fun firstLaunch() {}
-
     /** Appelé après lecture, avec la racine JSON telle qu'elle était : reprise d'anciennes clés. */
     protected open fun migrate(root: JsonObject) {}
 
     fun load() {
         val source = file.takeIf { Files.exists(it) } ?: legacyFile.takeIf { Files.exists(it) }
-        if (source == null) { firstLaunch(); save(); return }
+        if (source == null) { save(); return }
         runCatching {
             // parseString est lenient : tolère les commentaires // du jsonc legacy.
             val root = JsonParser.parseString(Files.readString(source)).asJsonObject
@@ -121,26 +118,6 @@ abstract class HscConfig(path: String, dir: Path = FabricLoader.getInstance().co
             runCatching { Files.copy(source, source.resolveSibling("${source.fileName}.bak"), REPLACE) }
         }
         save() // normalise (migration jsonc → json, nouvelles options)
-    }
-
-    fun resetToDefaults() {
-        for (e in entries.values) e.value = e.default
-        for (c in categories.values) for (e in c.entries.values) e.value = e.default
-    }
-
-    /** Applique un preset (même format JSON que le fichier config) par-dessus les défauts. */
-    fun applyPreset(jsonText: String) {
-        resetToDefaults()
-        runCatching {
-            val root = JsonParser.parseString(jsonText).asJsonObject
-            readGroup(this, root)
-            for ((id, cat) in categories) {
-                val obj = root.get(id) as? JsonObject ?: continue
-                readGroup(cat, obj)
-            }
-            // Un preset peut ne parler que des groupes : ses valeurs descendent sur les phrases.
-            migrate(root)
-        }.onFailure { logger.warn("Invalid preset: {}", it.message) }
     }
 
     fun save() {

@@ -46,4 +46,6 @@ object Collapse {
     }
 
     private fun countable(key: String) = key.isNotBlank() && !DECOR.matches(key)
+
+    fun reset() = recent.clear()
 }

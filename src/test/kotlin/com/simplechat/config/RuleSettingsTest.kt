@@ -36,4 +36,11 @@ class RuleSettingsTest {
         assertEquals(emptyList<Any>(), RuleSettings.perPhrase(boss))
         assertEquals(boss.default, RuleSettings.groupActions()["boss"])
     }
+
+    @Test fun `weather alerts expose one setting for intro and reports`() {
+        val weather = Registry.groups.first { it.id == "weatherAlerts" }
+        assertEquals(emptyList<Any>(), RuleSettings.perPhrase(weather))
+        assertEquals(RuleAction.COMPACT, RuleSettings.groupActions()[weather.id])
+        assertEquals(2, Registry.byGroup[weather]?.size)
+    }
 }

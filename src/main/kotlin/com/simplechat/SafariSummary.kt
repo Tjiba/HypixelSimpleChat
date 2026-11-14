@@ -1,6 +1,7 @@
 package com.simplechat
 
 import com.simplechat.config.RuleConfig
+import com.simplechat.engine.ChatRules
 import com.simplechat.engine.RuleAction
 import com.simplechat.engine.Verdict
 import com.simplechat.rules.Fmt
@@ -8,7 +9,7 @@ import java.util.regex.Pattern
 
 /**
  * Fusionne le récap de fin de safari — en-tête, lignes vides et trois gains — en une seule ligne,
- * posée à la place du séparateur de fin. État côté client (appelé par le mixin avant ChatRules) :
+ * complétée à chaque gain. État côté client (appelé par le mixin avant ChatRules) :
  * les sept lignes arrivent en sept messages, une règle du registre n'en verrait jamais qu'une.
  */
 object SafariSummary {
@@ -20,36 +21,72 @@ object SafariSummary {
     /** Id du réglage dans le menu ; le récap n'a pas de règle propre, il vit hors du registre. */
     const val SETTING = "foraging-safari-summary"
 
+    private const val MAX_LINES = 8
+
     private var active = false
+    private var seen = 0
     private val gains = LinkedHashMap<String, String>()
+    private var shown: String? = null
+    private var stale: String? = null
+    private var pending = false
+
+    fun trimsOpening(clean: String, cfg: RuleConfig): Boolean =
+        cfg.masterEnabled && cfg.skyblockEnabled && cfg.groupActions[SETTING] != RuleAction.OFF
+            && HEADER.matcher(clean).matches()
+
+    fun isSeparator(clean: String): Boolean = SEPARATOR.matcher(clean).matches()
 
     /** Verdict du récap, ou null si la ligne n'en fait pas partie. `clean` = texte décoloré. */
     fun process(clean: String, cfg: RuleConfig): Verdict? {
+        pending = false
         val action = cfg.groupActions[SETTING] ?: RuleAction.COMPACT
-        if (action == RuleAction.OFF) return null
+        if (!cfg.masterEnabled || !cfg.skyblockEnabled || action == RuleAction.OFF) {
+            reset()
+            return null
+        }
 
         if (HEADER.matcher(clean).matches()) {
-            active = true; gains.clear()
+            reset(); active = true
             return Verdict.Hide
         }
         if (!active) return null
-        if (action == RuleAction.HIDE) return if (SEPARATOR.matcher(clean).matches()) end(Verdict.Hide) else Verdict.Hide
+        if (++seen > MAX_LINES) { reset(); return null }
 
         if (clean.isEmpty()) return Verdict.Hide
         val g = GAIN.matcher(clean)
-        if (g.matches()) { gains[g.group(2)] = g.group(1); return Verdict.Hide }
-        // Séparateur de fin : c'est lui qui porte le récap fusionné.
-        if (SEPARATOR.matcher(clean).matches()) {
-            return end(if (gains.isEmpty()) Verdict.Hide else Verdict.Replace(line(action)))
+        if (g.matches()) {
+            gains[g.group(2)] = g.group(1)
+            if (action == RuleAction.HIDE) return Verdict.Hide
+            stale = shown; pending = true
+            return Verdict.Replace(line(action))
+        }
+        // Les gains sont déjà affichés ; la fin ferme le récap sans le déplacer.
+        if (isSeparator(clean)) {
+            reset()
+            return Verdict.Hide
         }
         // Ligne inattendue : on rend la main plutôt que d'avaler la suite du chat.
-        active = false
+        reset()
         return null
     }
 
-    private fun end(verdict: Verdict): Verdict {
-        active = false; gains.clear()
-        return verdict
+    fun isUpdating() = pending
+
+    fun stale(): String? {
+        val s = stale
+        stale = null
+        return s
+    }
+
+    fun displayed(rendered: String) {
+        if (!pending) return
+        pending = false
+        shown = rendered
+    }
+
+    fun reset() {
+        active = false; seen = 0; gains.clear()
+        shown = null; stale = null; pending = false
     }
 
     private fun line(action: RuleAction): String {
@@ -60,7 +97,7 @@ object SafariSummary {
                 else -> "§9+$amount Shards"
             }
         }
-        return if (action == RuleAction.GREY) "§8SAFARI · " + body.replace(Regex("§."), "")
+        return if (action == RuleAction.GREY || action == RuleAction.COMPACT_GREY) "§8SAFARI · " + ChatRules.clean(body)
         else "§2§lSAFARI §r$body"
     }
 }

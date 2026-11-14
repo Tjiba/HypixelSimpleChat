@@ -3,6 +3,6 @@
   "minVersion": "0.8",
   "package": "com.simplechat.mixin",
   "compatibilityLevel": "JAVA_25",
-  "client": ["ChatHudMixin", "ChatScreenMixin"],
+  "client": ["ChatHudMixin", "ChatScreenMixin", "GuiMessageMixin"],
   "injectors": { "defaultRequire": 1 }
 }

@@ -83,7 +83,7 @@ object SimpleChatMod : ClientModInitializer {
         // Quitter le jeu avec le menu ouvert : removed() ne passe pas, la config resterait en RAM.
         ClientLifecycleEvents.CLIENT_STOPPING.register { Settings.save() }
         net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.DISCONNECT.register { _, _ ->
-            com.simplechat.engine.UnreadChannels.reset()
+            resetChatState()
         }
 
         ClientTickEvents.END_CLIENT_TICK.register { client ->
@@ -93,6 +93,17 @@ object SimpleChatMod : ClientModInitializer {
             if (screen != null) Screens.set(client, screen)
             else client.player?.sendSystemMessage(Component.literal("Failed to open the settings screen."))
         }
+    }
+
+    fun resetChatState() {
+        SafariSummary.reset()
+        MiningSummary.reset()
+        HoppityCompact.reset()
+        BazaarSummary.reset()
+        PickupStash.reset()
+        com.simplechat.rules.common.Slayer.reset()
+        com.simplechat.engine.Collapse.reset()
+        com.simplechat.engine.UnreadChannels.reset()
     }
 
     private fun muteFeedback(client: Minecraft, name: String, muted: Boolean) {

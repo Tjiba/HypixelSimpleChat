@@ -189,7 +189,7 @@ object Preview {
             null -> listOf(msgs(public(cfg.self)), msgs(PARTY), msgs(guild(cfg.self)))
             else -> capped(blocksFor(cfg, ids, bazaarBatch(cfg)), limit)
         }
-        val ts = if (cfg.showTimestamps) Seg("[${java.time.LocalTime.now().format(TS_FMT)}] ", cfg.timestampColor) else null
+        val ts = if (cfg.masterEnabled && cfg.showTimestamps) Seg("[${java.time.LocalTime.now().format(TS_FMT)}] ", cfg.timestampColor) else null
 
         // Ligne vide entre deux blocs : on voit d'un coup d'œil à quel réglage chaque ligne appartient.
         val lines = ArrayList<Line>()

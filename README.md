@@ -6,7 +6,7 @@
 
 **Client-side Fabric mod that reformats Hypixel chat (lobbies + SkyBlock) so it stays readable.**
 
-[![Minecraft](https://img.shields.io/badge/Minecraft-26.1.2%20%7C%2026.2-brightgreen)](#)
+[![Minecraft](https://img.shields.io/badge/Minecraft-26.2%20%7C%2026.3-brightgreen)](#)
 [![Loader](https://img.shields.io/badge/Loader-Fabric-blue)](https://fabricmc.net/)
 [![Language](https://img.shields.io/badge/Kotlin-2.2-purple)](https://kotlinlang.org/)
 [![License](https://img.shields.io/badge/License-LGPL--3.0-blue)](LICENSE)
@@ -49,12 +49,12 @@ Master switch off = chat 100% untouched.
 | `/hsc mute <name>` | Hide everything a player says (`/hsc mute` lists them) |
 | `/hsc unmute <name>` | Let them through again |
 
-Settings are also reachable through **Mod Menu** (26.1), and there's a **Discord** button right in the menu.
+Settings are also reachable through **Mod Menu**, and there's a **Discord** button right in the menu.
 
 ## Requirements
 
-- Minecraft **26.1.2** or **26.2**
-- [Fabric Loader](https://fabricmc.net/) `>= 0.18.0`
+- Minecraft **26.2** or **26.3**
+- [Fabric Loader](https://fabricmc.net/) `>= 0.19.5`
 - [Fabric API](https://modrinth.com/mod/fabric-api)
 - [Fabric Language Kotlin](https://modrinth.com/mod/fabric-language-kotlin)
 

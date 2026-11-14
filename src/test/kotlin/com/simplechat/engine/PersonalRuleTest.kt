@@ -117,6 +117,59 @@ class PersonalRuleTest {
         }
     }
 
+    @Test fun `highlight keeps show item colors and hover outside the matching name`() {
+        val click = ClickEvent.SuggestCommand("/msg LaMeteo ")
+        val hover = HoverEvent.ShowText(Component.literal("Item details"))
+        val message = Component.empty().withStyle { it.withClickEvent(click) }
+            .append(Component.literal("§7[§6425§7] §6⚒ §b[MVP§a+§b] LaMeteo §7is holding "))
+            .append(Component.literal("§6[Fabled Sting ✪✪✪✪✪]").withStyle { it.withHoverEvent(hover) })
+        val result = SegRender.highlight(message, PersonalRule(text = "Meteo", color = 0x0088FF, underlined = true))
+        val parts = mutableListOf<Pair<String, Int?>>()
+        result.visit({ style, text ->
+            if (text.isNotEmpty()) {
+                parts.add(text to style.color?.value)
+                assertEquals(click, style.clickEvent)
+                assertEquals(text == "Meteo", style.isUnderlined)
+                assertEquals(if (text.startsWith("[Fabled")) hover else null, style.hoverEvent)
+            }
+            Optional.empty<Unit>()
+        }, Style.EMPTY)
+        assertEquals(listOf("[" to 0xAAAAAA, "425" to 0xFFAA00, "] " to 0xAAAAAA,
+            "⚒ " to 0xFFAA00, "[MVP" to 0x55FFFF, "+" to 0x55FF55, "] La" to 0x55FFFF,
+            "Meteo" to 0x0088FF, " " to 0x55FFFF, "is holding " to 0xAAAAAA,
+            "[Fabled Sting ✪✪✪✪✪]" to 0xFFAA00), parts)
+    }
+
+    @Test fun `highlight preserves legacy formatting and resets to inherited style`() {
+        val message = Component.literal("§6§lGold §oTimo§r base §aGreen")
+            .withStyle { it.withColor(0x123456).withUnderlined(true) }
+        val result = SegRender.highlight(message, PersonalRule(text = "Timo", color = 0x0088FF))
+        val parts = mutableListOf<Pair<String, Int?>>()
+        result.visit({ style, text ->
+            if (text.isNotEmpty()) {
+                parts.add(text to style.color?.value)
+                assertEquals(text == "Gold " || text == "Timo", style.isBold)
+                assertEquals(text == "Timo", style.isItalic)
+                assertEquals(text == " base ", style.isUnderlined)
+            }
+            Optional.empty<Unit>()
+        }, Style.EMPTY)
+        assertEquals(listOf("Gold " to 0xFFAA00, "Timo" to 0x0088FF,
+            " base " to 0x123456, "Green" to 0x55FF55), parts)
+    }
+
+    @Test fun `highlight keeps unicode and literal ampersands around legacy text`() {
+        val message = Component.literal("§6💎 R&D §bTi").append(Component.literal("mo §a✪"))
+        val result = SegRender.highlight(message, PersonalRule(text = "Timo", color = 0x0088FF))
+        assertEquals("💎 R&D Timo ✪", result.string)
+        val selected = StringBuilder()
+        result.visit({ style, text ->
+            if (style.color?.value == 0x0088FF) selected.append(text)
+            Optional.empty<Unit>()
+        }, Style.EMPTY)
+        assertEquals("Timo", selected.toString())
+    }
+
     @Test fun `highlight adds each style independently and keeps interactions`() {
         val click = ClickEvent.SuggestCommand("/msg Timo ")
         val hover = HoverEvent.ShowText(Component.literal("Details"))

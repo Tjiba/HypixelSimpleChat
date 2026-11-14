@@ -3,6 +3,7 @@ package com.simplechat.mixin;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.simplechat.HscChatAccess;
 import com.simplechat.IHscChat;
+import com.simplechat.IHscMessage;
 import com.simplechat.config.RuleConfig;
 import com.simplechat.engine.ChatRules;
 import com.simplechat.engine.Collapse;
@@ -37,6 +38,8 @@ public abstract class ChatHudMixin implements IHscChat {
     private static final int HSC_BATCH_DEPTH = 8;
 
     private String hsc$lastBlank = null;
+    private String hsc$lastSeparator = null;
+    private com.simplechat.engine.Channel hsc$incomingChannel = com.simplechat.engine.Channel.SYSTEM;
 
     // Collapse global des répétitions : Collapse retient les lignes récentes, le mixin retrouve
     // celle qui revient dans l'historique et la ré-affiche avec (xN).
@@ -95,7 +98,7 @@ public abstract class ChatHudMixin implements IHscChat {
     public void hsc$setChannelFilter(int tabCode) {
         hsc$tabCode = tabCode;
         com.simplechat.engine.UnreadChannels.INSTANCE.select(
-                com.simplechat.config.Settings.INSTANCE.getChatTabs() && com.simplechat.config.Settings.INSTANCE.getTabFilterMode() && com.simplechat.config.Settings.INSTANCE.getUnreadNotifications(), tabCode);
+                com.simplechat.config.Settings.INSTANCE.getMasterEnabled() && com.simplechat.config.Settings.INSTANCE.getChatTabs() && com.simplechat.config.Settings.INSTANCE.getTabFilterMode() && com.simplechat.config.Settings.INSTANCE.getUnreadNotifications(), tabCode);
         hsc$reapplyFilter();
     }
 
@@ -107,25 +110,18 @@ public abstract class ChatHudMixin implements IHscChat {
 
     /** Reconstruit le prédicat combiné (onglet + recherche) et l'applique. Renvoie le nb de correspondances. */
     private int hsc$reapplyFilter() {
-        final int tab = hsc$tabCode;
-        final String q = hsc$query.toLowerCase(java.util.Locale.ROOT);
+        final boolean enabled = com.simplechat.config.Settings.INSTANCE.getMasterEnabled();
+        final int tab = enabled ? hsc$tabCode : 0;
+        final String q = enabled ? hsc$query.toLowerCase(java.util.Locale.ROOT) : "";
         final String[] tokens = q.isEmpty() ? new String[0] : q.split("\\s+");
-        // Capture unique : le prédicat repasse sur tout l'historique à chaque rafraîchissement.
-        final RuleConfig cfg = RuleConfig.Companion.current();
         java.util.function.Predicate<GuiMessage> pred = m -> {
             // Hypixel laisse ses « § » dans le texte du composant : sans clean, ni le canal ni la
             // recherche ne voient le vrai texte de la ligne.
             String content = ChatRules.INSTANCE.clean(m.content().getString());
             if (tab != 0) {
-                com.simplechat.engine.Channel ch = hsc$channelOf(content, cfg);
-                boolean ok = switch (tab) {
-                    case 1 -> ch != com.simplechat.engine.Channel.PARTY && ch != com.simplechat.engine.Channel.GUILD
-                            && ch != com.simplechat.engine.Channel.OFFICER;
-                    case 2 -> ch == com.simplechat.engine.Channel.PARTY;
-                    case 3 -> ch == com.simplechat.engine.Channel.GUILD || ch == com.simplechat.engine.Channel.OFFICER;
-                    default -> true;
-                };
-                if (!ok) return false;
+                com.simplechat.engine.Channel ch = ((IHscMessage) (Object) m).hsc$getChannel();
+                if (ch == null) ch = ChatRules.INSTANCE.classify(hsc$stripLead(content));
+                if (!com.simplechat.engine.ChatChannel.INSTANCE.visible(ch, tab)) return false;
             }
             if (tokens.length > 0) {
                 String s = content.toLowerCase(java.util.Locale.ROOT);
@@ -147,22 +143,6 @@ public abstract class ChatHudMixin implements IHscChat {
         return count;
     }
 
-    /** Canal d'une ligne de l'historique. classify ne connaît que les en-têtes d'Hypixel : nos propres
-     *  formats portent le préfixe configuré ("G", "O", "P" par défaut), qu'on rattrape ensuite. */
-    private static com.simplechat.engine.Channel hsc$channelOf(String clean, RuleConfig cfg) {
-        String s = hsc$stripLead(clean);
-        com.simplechat.engine.Channel ch = ChatRules.INSTANCE.classify(s);
-        if (ch != com.simplechat.engine.Channel.SYSTEM) return ch;
-        if (hsc$headedBy(s, cfg.getBridge().getOfficerPrefix())) return com.simplechat.engine.Channel.OFFICER;
-        if (hsc$headedBy(s, cfg.getBridge().getGuildPrefix())) return com.simplechat.engine.Channel.GUILD;
-        if (hsc$headedBy(s, cfg.getPartyPrefix())) return com.simplechat.engine.Channel.PARTY;
-        return ch;
-    }
-
-    private static boolean hsc$headedBy(String s, String prefix) {
-        return !prefix.isEmpty() && s.startsWith(prefix + " > ");
-    }
-
     /** Retire un éventuel timestamp de tête "[HH:MM] " pour que classify voie le préfixe de canal. */
     private static String hsc$stripLead(String s) {
         if (s.length() >= 8 && s.charAt(0) == '[' && s.charAt(3) == ':' && s.charAt(6) == ']' && s.charAt(7) == ' ')
@@ -180,6 +160,7 @@ public abstract class ChatHudMixin implements IHscChat {
         require = 0
     )
     private boolean hsc$keepEverything(java.util.function.Predicate<GuiMessage> filter, Object message) {
+        ((IHscMessage) message).hsc$setChannel(hsc$incomingChannel);
         return hsc$pred != null || filter.test((GuiMessage) message);
     }
 
@@ -222,6 +203,7 @@ public abstract class ChatHudMixin implements IHscChat {
     // TODO le 2048 est aussi en dur dans Collapse.MAX_KEYS et dans le réglage, à factoriser.
     @ModifyExpressionValue(method = {"addMessageToQueue", "addMessageToDisplayQueue"}, at = @At(value = "CONSTANT", args = "intValue=100"), require = 0)
     private int hsc$maxHistory(int original) {
+        if (!com.simplechat.config.Settings.INSTANCE.getMasterEnabled()) return original;
         return Math.max(original, Math.max(100, Math.min(2048, com.simplechat.config.Settings.INSTANCE.getMaxMessages())));
     }
 
@@ -236,7 +218,16 @@ public abstract class ChatHudMixin implements IHscChat {
 
         RuleConfig cfg = RuleConfig.Companion.current();
         String legacy = com.simplechat.ComponentLegacy.of(original);
-        // Avertissement Discord greffé par Hypixel : toujours retiré, sans toggle.
+        com.simplechat.Debug.logIncoming(legacy);
+        hsc$incomingChannel = ChatRules.INSTANCE.classify(ChatRules.INSTANCE.clean(legacy));
+        if (!cfg.getMasterEnabled()) {
+            com.simplechat.SimpleChatMod.INSTANCE.resetChatState();
+            hsc$lastBlank = null;
+            hsc$lastSeparator = null;
+            if (hsc$pred != null) { hsc$query = ""; hsc$tabCode = 0; hsc$reapplyFilter(); }
+            return;
+        }
+        // Avertissement Discord greffé par Hypixel : retiré tant que le mod est actif.
         String stripped = ChatRules.INSTANCE.stripDiscordWarning(legacy);
         boolean warned = !stripped.equals(legacy);
         legacy = stripped;
@@ -246,6 +237,13 @@ public abstract class ChatHudMixin implements IHscChat {
             hsc$removeLine(hsc$lastBlank, 1);
         }
         hsc$lastBlank = null;
+        String separator = hsc$lastSeparator;
+        hsc$lastSeparator = null;
+        // Le séparateur appartient au résumé seulement si son en-tête arrive juste après.
+        if (separator != null && (com.simplechat.SafariSummary.INSTANCE.trimsOpening(clean, cfg)
+                || com.simplechat.MiningSummary.INSTANCE.trimsOpening(clean, cfg))) {
+            hsc$removeLine(separator, 1);
+        }
         if (warned && clean.isEmpty()) { ci.cancel(); return; }
         // Un filtre personnel masque avant les lots pour ne pas réintroduire le texte dans un résumé.
         String giftTotals = hsc$treeGiftTotals(clean, legacy, original);
@@ -255,20 +253,38 @@ public abstract class ChatHudMixin implements IHscChat {
                 if (rule.matches(legacy, ChatRules.INSTANCE.classify(clean))) { personal = rule; break; }
             }
         }
-        if (personal != null && personal.getAction() == com.simplechat.engine.PersonalAction.HIDE) { ci.cancel(); return; }
+        if (personal != null && personal.getAction() == com.simplechat.engine.PersonalAction.HIDE) {
+            com.simplechat.Debug.logHidden("personal filter", legacy);
+            ci.cancel(); return;
+        }
         Verdict v = com.simplechat.SafariSummary.INSTANCE.process(clean, cfg);
         // Le pavé de coffre se reconnaît à la couleur de ses barres : il lui faut le brut.
         if (v == null) v = com.simplechat.MiningSummary.INSTANCE.process(clean, legacy, cfg);
         if (v == null) v = com.simplechat.PickupStash.INSTANCE.process(clean, cfg, legacy);
-        if (v == null) v = com.simplechat.HoppityCompact.INSTANCE.process(clean, cfg.getCompactHoppity());
+        if (v == null) v = com.simplechat.HoppityCompact.INSTANCE.process(clean, cfg.getSkyblockEnabled() && cfg.getCompactHoppity());
         // Avant le registre : le début de quête slayer attend sa ligne d'objectif pour être nommé.
         if (v == null) v = com.simplechat.rules.common.Slayer.INSTANCE.process(clean, cfg);
+        boolean summarized = v != null;
         if (v == null) v = ChatRules.INSTANCE.evaluate(legacy, cfg);
         // Après les règles : c'est leur verdict qui dit si le joueur veut voir ses ordres Bazaar.
         Verdict batch = com.simplechat.BazaarSummary.INSTANCE.process(clean, legacy, v, cfg);
         if (batch != null) v = batch;
 
-        if (v instanceof Verdict.Hide) { ci.cancel(); return; }
+        // Les sourdines et filtres personnels restent prioritaires ; seuls les boutons système
+        // sont sauvés d'une règle de nettoyage. Les résumés masquent volontairement leurs lignes
+        // intermédiaires, même cliquables (Hoppity porte un clic pour ouvrir sa collection).
+        if (v instanceof Verdict.Hide && !summarized && hsc$incomingChannel == com.simplechat.engine.Channel.SYSTEM
+                && hsc$hasActionClick(original)
+                && !com.simplechat.engine.CustomHide.INSTANCE.matches(legacy, cfg)
+                && !com.simplechat.PickupStash.INSTANCE.isLine(clean)) {
+            com.simplechat.Debug.logGuard("clickable button", legacy);
+            v = com.simplechat.engine.Verdict.Pass.INSTANCE;
+        }
+        if (v instanceof Verdict.Hide) {
+            if (summarized) com.simplechat.Debug.logHidden("summary", legacy);
+            else com.simplechat.Debug.log(legacy, clean, v);
+            ci.cancel(); return;
+        }
 
         com.simplechat.engine.UnreadChannels.INSTANCE.select(
                 com.simplechat.config.Settings.INSTANCE.getChatTabs() && com.simplechat.config.Settings.INSTANCE.getTabFilterMode() && com.simplechat.config.Settings.INSTANCE.getUnreadNotifications(), hsc$tabCode);
@@ -276,16 +292,6 @@ public abstract class ChatHudMixin implements IHscChat {
 
         // #2 : préserver les items/entités linkés -> ne pas reformater un message joueur qui en contient.
         if (v instanceof Verdict.Segments && hsc$hasItemLink(original)) {
-            v = com.simplechat.engine.Verdict.Pass.INSTANCE;
-        }
-
-        // Bouton cliquable (accepter un appel Abiphone, rejoindre une party…) : ne pas masquer/
-        // reformater un message SYSTEM — le Replace reconstruit le texte et perdrait le ClickEvent.
-        // Les messages joueurs (Segments) restent formatés : Hypixel met un clic /msg sur tous les
-        // pseudos, le garde-fou bloquerait sinon tout le reformat de canal.
-        if (v instanceof Verdict.Hide && hsc$hasActionClick(original)
-                && !com.simplechat.PickupStash.INSTANCE.isLine(clean)) {
-            com.simplechat.Debug.logGuard("clickable button", legacy);
             v = com.simplechat.engine.Verdict.Pass.INSTANCE;
         }
 
@@ -302,6 +308,11 @@ public abstract class ChatHudMixin implements IHscChat {
         boolean smart = cfg.getSmartCollapse() && (v instanceof Verdict.Replace);
         String key = smart ? ChatRules.INSTANCE.collapseKey(clean) : clean;
         boolean system = ChatRules.INSTANCE.classify(clean) == com.simplechat.engine.Channel.SYSTEM;
+        // Les lignes d'un pavé doivent rester à leur place ; les gains d'XP restent distincts.
+        boolean groupable = !system || (com.simplechat.rules.Fmt.INSTANCE.indent(legacy).isEmpty()
+                && !com.simplechat.rules.common.Drops.INSTANCE.isSkyblockXp(clean)
+                && !com.simplechat.SafariSummary.INSTANCE.isUpdating()
+                && !com.simplechat.MiningSummary.INSTANCE.isUpdating());
         Component base;
         if (v instanceof Verdict.Segments sv) {
             base = buildSegs(sv.getSegs());
@@ -325,11 +336,11 @@ public abstract class ChatHudMixin implements IHscChat {
             base = com.simplechat.engine.SegRender.highlight(base, personal);
             untouched = false;
         }
-        hsc$display(base, key, untouched, system, cfg, signature, source, tag, ci);
+        hsc$display(base, key, untouched, system, groupable, cfg, signature, source, tag, ci);
     }
 
     /** Affiche [base] ; si la même ligne est déjà dans la fenêtre, la reprend en bas avec (xN). */
-    private void hsc$display(Component base, String key, boolean untouched, boolean system, RuleConfig cfg,
+    private void hsc$display(Component base, String key, boolean untouched, boolean system, boolean groupable, RuleConfig cfg,
                              MessageSignature sig, GuiMessageSource src, GuiMessageTag tag, CallbackInfo ci) {
         // Lot Bazaar : sa ligne de total est retirée pour que la suivante prenne sa place, plutôt
         // qu'une ligne de plus par ordre. Introuvable (chat vidé, historique plein) -> ajout normal.
@@ -340,8 +351,12 @@ public abstract class ChatHudMixin implements IHscChat {
         if (quest != null) hsc$removeLine(quest, HSC_BATCH_DEPTH);
         String stash = com.simplechat.PickupStash.INSTANCE.stale();
         if (stash != null) hsc$removeLine(stash, HSC_BATCH_DEPTH);
+        String safari = com.simplechat.SafariSummary.INSTANCE.stale();
+        if (safari != null) hsc$removeLine(safari, Integer.MAX_VALUE);
+        String chest = com.simplechat.MiningSummary.INSTANCE.stale();
+        if (chest != null) hsc$removeLine(chest, Integer.MAX_VALUE);
 
-        Collapse.Seen seen = cfg.getGroupRepeats() ? Collapse.INSTANCE.seen(key) : null;
+        Collapse.Seen seen = cfg.getGroupRepeats() && groupable ? Collapse.INSTANCE.seen(key) : null;
 
         // Le spam système est rattrapé même si d'autres lignes sont passées entre-temps. Le chat
         // joueur ne se replie que sur la ligne juste au-dessus : sans fenêtre de temps, un "gg"
@@ -363,17 +378,27 @@ public abstract class ChatHudMixin implements IHscChat {
         // sinon les autres mods injectant sur addMessage traitent chaque ligne en double.
         if (untouched && !cfg.getShowTimestamps()) {
             if (key.isEmpty()) hsc$lastBlank = base.getString();
-            Collapse.INSTANCE.remember(key, base.getString(), 1);
+            if (com.simplechat.SafariSummary.INSTANCE.isSeparator(ChatRules.INSTANCE.clean(base.getString()))) {
+                hsc$lastSeparator = base.getString();
+            }
+            if (groupable) Collapse.INSTANCE.remember(key, base.getString(), 1);
+            com.simplechat.SafariSummary.INSTANCE.displayed(base.getString());
+            com.simplechat.MiningSummary.INSTANCE.displayed(base.getString());
             return;
         }
 
         Component disp = withTimestamp(base, cfg);
         if (key.isEmpty()) hsc$lastBlank = disp.getString();
-        Collapse.INSTANCE.remember(key, disp.getString(), 1);
+        if (com.simplechat.SafariSummary.INSTANCE.isSeparator(ChatRules.INSTANCE.clean(base.getString()))) {
+            hsc$lastSeparator = disp.getString();
+        }
+        if (groupable) Collapse.INSTANCE.remember(key, disp.getString(), 1);
         com.simplechat.BazaarSummary.INSTANCE.displayed(disp.getString());
         com.simplechat.rules.common.Slayer.INSTANCE.displayed(disp.getString());
         com.simplechat.PickupStash.INSTANCE.displayed(disp.getString());
         com.simplechat.Debug.logRendered(disp.getString());
+        com.simplechat.SafariSummary.INSTANCE.displayed(disp.getString());
+        com.simplechat.MiningSummary.INSTANCE.displayed(disp.getString());
         reAdd(disp, sig, src, tag, ci);
     }
 

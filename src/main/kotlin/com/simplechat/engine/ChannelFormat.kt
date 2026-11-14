@@ -8,6 +8,7 @@ object ChannelFormat {
 
     // Niveau public en tête, sur texte nettoyé : "[330] ".
     private val LEVEL_HEAD = Pattern.compile("^\\[(\\d{1,4})] ")
+    private val EMBLEM_HEAD = Pattern.compile("^${ChatRules.PUBLIC_EMBLEMS}")
 
     // Couleur du niveau SkyBlock par palier de 40 (schéma officiel Hypixel).
     private val LEVEL_COLORS = intArrayOf(
@@ -98,7 +99,7 @@ object ChannelFormat {
         return (if (rankEnd >= 0) core.substring(rankEnd + 2) else core).takeIf { it.isNotEmpty() }
     }
 
-    /** En-tête d'un message public : niveau [330] puis emblème optionnels, avant le rank. */
+    /** En-tête d'un message public : niveau [330] puis emblèmes optionnels, avant le rank. */
     private data class PublicHead(val level: String?, val emblem: String?, val rest: String)
 
     private fun publicHead(clean: String): PublicHead {
@@ -106,13 +107,11 @@ object ChannelFormat {
         var level: String? = null
         val lm = LEVEL_HEAD.matcher(rest)
         if (lm.find()) { level = lm.group(1); rest = rest.substring(lm.end()) }
-        // Emblème générique : un glyphe symbole en tête (pas '[', pas alphanum), suivi d'un espace.
-        // Hypixel en a beaucoup (⛃ ☠ ⚑ ➷ …), pas seulement le pioche/coffre.
         var emblem: String? = null
-        val first = rest.firstOrNull()
-        if (first != null && first != '[' && !first.isLetterOrDigit() && first != '_') {
-            val sp = rest.indexOf(' ')
-            if (sp > 0) { emblem = rest.substring(0, sp); rest = rest.substring(sp + 1) }
+        val em = EMBLEM_HEAD.matcher(rest)
+        if (em.find()) {
+            emblem = em.group().trim().takeIf { it.isNotEmpty() }
+            rest = rest.substring(em.end())
         }
         return PublicHead(level, emblem, rest)
     }

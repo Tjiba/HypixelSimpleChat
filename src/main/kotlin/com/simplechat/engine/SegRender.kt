@@ -2,13 +2,15 @@ package com.simplechat.engine
 
 import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.MutableComponent
+import net.minecraft.network.chat.Style
+import net.minecraft.util.StringDecomposer
 
 /** Convertit une liste de Seg (couleurs/format RGB) en Component Minecraft. Partagé preview + mixins. */
 object SegRender {
     @JvmStatic
     fun highlight(message: Component, rule: PersonalRule): Component {
         if (rule.text.isBlank()) return message
-        val plain = CustomHide.stripColors(message.string)
+        val plain = StringDecomposer.getPlainText(message)
         val highlighted = BooleanArray(plain.length)
         var match = plain.indexOf(rule.text, ignoreCase = !rule.caseSensitive)
         if (match < 0) return message
@@ -17,27 +19,35 @@ object SegRender {
             match = plain.indexOf(rule.text, match + 1, ignoreCase = !rule.caseSensitive)
         }
         val out = Component.empty()
+        val buf = StringBuilder()
+        var currentStyle = Style.EMPTY
         var offset = 0
-        message.visit({ style, text ->
-            val clean = CustomHide.stripColors(text)
-            var start = 0
-            while (start < clean.length) {
-                val selected = highlighted[offset + start]
-                var end = start + 1
-                while (end < clean.length && highlighted[offset + end] == selected) end++
-                var st = style
-                if (selected) {
-                    st = st.withColor(rule.color)
-                    if (rule.bold) st = st.withBold(true)
-                    if (rule.italic) st = st.withItalic(true)
-                    if (rule.underlined) st = st.withUnderlined(true)
-                }
-                out.append(Component.literal(clean.substring(start, end)).withStyle(st))
-                start = end
+
+        fun flush() {
+            if (buf.isNotEmpty()) {
+                out.append(Component.literal(buf.toString()).withStyle(currentStyle))
+                buf.setLength(0)
             }
-            offset += clean.length
-            java.util.Optional.empty<Unit>()
-        }, net.minecraft.network.chat.Style.EMPTY)
+        }
+
+        // Hypixel mélange styles et codes § : le rendu vanilla résout les deux sans perdre les survols.
+        StringDecomposer.iterateFormatted(message, Style.EMPTY) { _, style, codePoint ->
+            var st = style
+            if (highlighted[offset]) {
+                st = st.withColor(rule.color)
+                if (rule.bold) st = st.withBold(true)
+                if (rule.italic) st = st.withItalic(true)
+                if (rule.underlined) st = st.withUnderlined(true)
+            }
+            if (st != currentStyle) {
+                flush()
+                currentStyle = st
+            }
+            buf.appendCodePoint(codePoint)
+            offset += Character.charCount(codePoint)
+            true
+        }
+        flush()
         return out
     }
 

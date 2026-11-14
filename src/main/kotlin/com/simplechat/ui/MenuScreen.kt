@@ -78,7 +78,6 @@ class MenuScreen(private val parent: Screen?) : Screen(
         val entry: ConfigEntry, val id: String, val title: String, val kind: Kind, val desc: String,
         val bulkIds: List<String>? = null,
     ) : Item()
-    private object PresetRow : Item()
     private class PersonalButton(val index: Int?) : Item()
     private class PersonalHeader(val index: Int, val row: PersonalRuleSettings) : Item()
     private var expandedRule: PersonalRuleSettings? = null
@@ -247,7 +246,6 @@ class MenuScreen(private val parent: Screen?) : Screen(
         // Sections sans onglets (ex. General) : header par section (titre vide = pas de header).
         val flat = FLAT_SECTIONS[currentCategory]
         if (flat != null) {
-            if (currentCategory == null) items.add(PresetRow)
             for ((title, ids) in flat) {
                 val group = ids.mapNotNull { byId[it] }
                 if (group.isEmpty()) continue
@@ -355,7 +353,13 @@ class MenuScreen(private val parent: Screen?) : Screen(
     // Écrit dès le clic : un jeu tué avec le menu ouvert ne doit pas emporter le réglage.
     // Le drag du picker attend le relâchement, sinon c'est un write par frame.
     private fun onValueChanged() {
-        presetChoice = null
+        if (!Settings.masterEnabled) {
+            com.simplechat.SimpleChatMod.resetChatState()
+            com.simplechat.HscChatAccess.current?.let {
+                it.`hsc$applySearch`("")
+                it.`hsc$setChannelFilter`(0)
+            }
+        }
         if (!Settings.unreadNotifications) com.simplechat.engine.UnreadChannels.reset()
         personalRows?.let { rows -> PersonalRules.replace(rows.map { it.rule() }) }
         rebuildPreview()
@@ -420,7 +424,6 @@ class MenuScreen(private val parent: Screen?) : Screen(
             if (itop + h >= listTop() && itop <= bot) when (item) {
                 is Header -> renderHeader(gfx, item, itop)
                 is Setting -> renderRow(gfx, item, itop, mx, my)
-                is PresetRow -> renderPresetRow(gfx, itop, mx, my)
                 is PersonalHeader -> {
                     val hover = inRect(mx, my, x1 + 4, itop, x2 - 4, itop + h)
                     rr(gfx, x1 + 4, itop + 1, x2 - 4, itop + h - 1, 4,
@@ -508,40 +511,6 @@ class MenuScreen(private val parent: Screen?) : Screen(
                 gfx.text(font, txt, hx + 6, b[1] + (MenuTheme.WIDGET_H - font.lineHeight) / 2, MenuTheme.TEXT)
             }
         }
-    }
-
-    /** Boutons du preset : (label, x1, x2), alignés à droite comme les widgets. */
-    private fun presetButtons(top: Int): List<Triple<String, Int, Int>> {
-        var right = settingsX2() - 8
-        val res = ArrayList<Triple<String, Int, Int>>()
-        for (label in listOf("Default", "Recommended")) { // droite → gauche
-            val w = font.width(label) + 12
-            res.add(Triple(label, right - w, right))
-            right -= w + 4
-        }
-        return res
-    }
-
-    private fun presetBtnY(top: Int) = top + (MenuTheme.ROW_H - MenuTheme.WIDGET_H) / 2
-
-    private fun renderPresetRow(gfx: GuiGraphicsExtractor, top: Int, mx: Int, my: Int) {
-        gfx.text(font, "Preset", mainX1() + 10, top + (MenuTheme.ROW_H - font.lineHeight) / 2, MenuTheme.TEXT)
-        val y = presetBtnY(top)
-        for ((label, x1, x2) in presetButtons(top)) {
-            val hover = inRect(mx, my, x1, y, x2, y + MenuTheme.WIDGET_H)
-            val accent = label == presetChoice
-            rr(gfx, x1, y, x2, y + MenuTheme.WIDGET_H, 4, if (accent) MenuTheme.ACCENT else if (hover) MenuTheme.FIELD_HOVER else MenuTheme.FIELD)
-            gfx.centeredText(font, label, (x1 + x2) / 2, y + (MenuTheme.WIDGET_H - font.lineHeight) / 2, if (accent) MenuTheme.TEXT_TITLE else MenuTheme.TEXT)
-        }
-    }
-
-    private fun applyPreset(recommended: Boolean) {
-        val personal = PersonalRules.rules
-        if (recommended) { if (!Settings.applyRecommended()) Settings.resetToDefaults() }
-        else Settings.resetToDefaults()
-        PersonalRules.rules = personal
-        onValueChanged()
-        presetChoice = if (recommended) "Recommended" else "Default" // après onValueChanged (qui l'efface)
     }
 
     private fun renderPreview(gfx: GuiGraphicsExtractor) {
@@ -690,14 +659,6 @@ class MenuScreen(private val parent: Screen?) : Screen(
                     expandedRule = if (expandedRule === item.row) null else item.row
                     picker = null; openDropdown = null
                     refresh()
-                }
-                is PresetRow -> {
-                    val y = presetBtnY(hitTop)
-                    for ((label, x1, x2) in presetButtons(hitTop)) {
-                        if (inRect(mx, my, x1, y, x2, y + MenuTheme.WIDGET_H)) {
-                            applyPreset(label == "Recommended"); break
-                        }
-                    }
                 }
                 is PersonalButton -> {
                     val b = widgetBoxAt(hitTop)
@@ -1008,8 +969,6 @@ class MenuScreen(private val parent: Screen?) : Screen(
         s.trim().removePrefix("#").takeIf { it.isNotEmpty() }?.toIntOrNull(16)?.and(0xFFFFFF)
 
     companion object {
-        // Dernier preset appliqué (surligné) ; effacé dès qu'une valeur est modifiée à la main.
-        private var presetChoice: String? = null
 
         // Ordre des catégories dans la sidebar (null = General).
         private val NAV_ORDER = listOf<String?>(null, "Public Chat", "Party Chat", "Guild Chat", "SkyBlock", "Custom Rules", "Lobby", "System")
@@ -1020,7 +979,7 @@ class MenuScreen(private val parent: Screen?) : Screen(
         private val FLAT_SECTIONS: Map<String?, LinkedHashMap<String, List<String>>> = mapOf(
             null to linkedMapOf(
                 "" to listOf("masterEnabled", "groupRepeats", "smartCollapse", "updateNotifications", "maxMessages", "showTimestamps", "timestampColor", "highlightSelf", "selfColor", "mutedPlayers", "compactTheme", "compactThemeColor"),
-                "CHAT TABS" to listOf("chatTabs", "tabFilterMode", "unreadNotifications"),
+                "CHAT TABS" to listOf("chatTabs", "tabFilterMode", "allTabSendsToAllChat", "unreadNotifications"),
             ),
         )
 

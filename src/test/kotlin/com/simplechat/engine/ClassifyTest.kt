@@ -28,4 +28,15 @@ class ClassifyTest {
         assertEquals(Channel.SYSTEM, ChatRules.classify("You are playing on profile: Peach (Co-op)"))
         assertEquals(Channel.SYSTEM, ChatRules.classify("Sending to server mega8E..."))
     }
+
+    @Test fun `public accepts multiple emblems including unicode letters`() {
+        for (prefix in listOf("[512] Σ ♲ ", "[512] Σ ", "[512] ♲ Σ ", "Σ ♲ ")) {
+            for (rank in listOf("[MVP+] ", "")) {
+                assertEquals(Channel.PUBLIC, ChatRules.classify("${prefix}${rank}Shingblad: again"))
+            }
+        }
+        for (prefix in listOf("[NPC] ", "[BOSS] ", "[STATUE] ")) {
+            assertEquals(Channel.SYSTEM, ChatRules.classify("${prefix}Shingblad: again"))
+        }
+    }
 }

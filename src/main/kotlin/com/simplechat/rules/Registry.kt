@@ -38,7 +38,7 @@ object Registry {
         Boosters.BOOSTER, Boosters.GENEROSITY, Boosters.PLAYTIME, Boosters.REWARD_LINK,
         Rewards.MYSTERY, Rewards.CLAIMED,
         Morphs.MORPH,
-        Npc.NPC_DIALOG, Npc.ABIPHONE,
+        Npc.NPC_DIALOG, Npc.ABIPHONE, Npc.WEATHER_ALERTS,
         Pets.PET_SPAWN, Pets.PET_SUMMON, Pets.AUTOPET,
         Combat.BOSS, Combat.DAMAGE, Combat.KILL_COMBO, Combat.MOB_ABILITY, Combat.PLAYER_DEATH,
         Economy.SACKS, Economy.PICKUP_STASH, Economy.LOOT_SHARE, Economy.GEXP, Economy.RARE_REWARD,

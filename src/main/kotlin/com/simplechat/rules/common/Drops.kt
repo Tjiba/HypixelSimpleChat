@@ -22,10 +22,12 @@ object Drops {
      */
     val skyblockXp = rules(SKYBLOCK_XP) {
         rule("skyblock-xp", RuleAction.COMPACT,
-            "^\\+([\\d,.]+) SkyBlock XP(?: \\((.+?)\\))?(?: \\([\\d,]+/[\\d,]+\\))?$",
+            "^\\+([\\d,.]+) SkyBlock XP(?: \\((?![\\d,]+/[\\d,]+\\))(.+?)\\))?(?: \\([\\d,]+/[\\d,]+\\))?$",
             compact = { Fmt.indent(it.raw) + "§b+${it[1]} SB XP" + if (it[2].isEmpty()) "" else " §7(${it[2]})" },
             sample = "§b+2 SkyBlock XP §7(Bag Upgrades) §8(69/100)")
     }
+
+    fun isSkyblockXp(clean: String): Boolean = skyblockXp.any { it.match(clean, clean) != null }
 
     val rules = rules(REWARDS) {
         rule("essence-found", RuleAction.HIDE,

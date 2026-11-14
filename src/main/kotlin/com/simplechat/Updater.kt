@@ -4,6 +4,8 @@ import com.google.gson.JsonParser
 import com.simplechat.config.Settings
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents
 import net.fabricmc.loader.api.FabricLoader
+import net.fabricmc.loader.api.SemanticVersion
+import net.fabricmc.loader.api.Version
 import net.minecraft.client.Minecraft
 import net.minecraft.network.chat.ClickEvent
 import net.minecraft.network.chat.Component
@@ -37,7 +39,8 @@ object Updater {
             CompletableFuture.delayedExecutor(5, TimeUnit.SECONDS).execute {
                 check().thenRun {
                     val v = latest ?: return@thenRun
-                    if (notified || compareVersions(CURRENT_VERSION, v) >= 0) return@thenRun
+                    val cmp = compareVersions(CURRENT_VERSION, v) ?: return@thenRun
+                    if (notified || cmp >= 0) return@thenRun
                     notified = true
                     send(client, updateMessage())
                 }
@@ -55,6 +58,7 @@ object Updater {
             }
             val cmp = compareVersions(CURRENT_VERSION, v)
             val msg = when {
+                cmp == null -> Component.literal(Msg.UPDATE_CHECK_FAILED.get())
                 cmp < 0 -> updateMessage()
                 cmp > 0 -> Component.literal(Msg.UPDATE_DEV_VERSION.format(CURRENT_VERSION, v))
                 else -> Component.literal(Msg.UPDATE_UP_TO_DATE.format(CURRENT_VERSION))
@@ -63,24 +67,10 @@ object Updater {
         }
     }
 
-    /** Ignore les suffixes pre-release/build ("1.1.0-beta", "1.0.0+mc26.2" → "1.1.0", "1.0.0"). */
-    private fun baseVersion(v: String) = v.substringBefore('-').substringBefore('+')
-
-    fun compareVersions(v1: String, v2: String): Int = try {
-        val p1 = baseVersion(v1).split("."); val p2 = baseVersion(v2).split(".")
-        var result = 0
-        for (i in 0 until maxOf(p1.size, p2.size)) {
-            val n1 = if (i < p1.size) p1[i].toInt() else 0
-            val n2 = if (i < p2.size) p2[i].toInt() else 0
-            if (n1 < n2) { result = -1; break }
-            if (n1 > n2) { result = 1; break }
-        }
-        result
-    } catch (e: NumberFormatException) {
-        // TODO un numéro illisible passe pour "à jour", sans rien dire au joueur.
-        SimpleChatMod.LOGGER.warn("Version comparison error: ${e.message}")
-        0
-    }
+    fun compareVersions(v1: String, v2: String): Int? = runCatching {
+        val first: Version = SemanticVersion.parse(v1)
+        first.compareTo(SemanticVersion.parse(v2))
+    }.onFailure { SimpleChatMod.LOGGER.warn("Version comparison error: {}", it.message) }.getOrNull()
 
     private fun check(): CompletableFuture<Void> = CompletableFuture.runAsync {
         runCatching { fetchLatest()?.let { latest = it } }

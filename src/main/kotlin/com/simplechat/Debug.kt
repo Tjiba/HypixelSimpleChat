@@ -14,6 +14,18 @@ object Debug {
     var enabled = false
 
     @JvmStatic
+    fun logIncoming(legacy: String) {
+        if (!enabled) return
+        SimpleChatMod.LOGGER.info("[hsc] Incoming | {}", legacy.replace('§', '&'))
+    }
+
+    @JvmStatic
+    fun logHidden(reason: String, legacy: String) {
+        if (!enabled) return
+        SimpleChatMod.LOGGER.info("[hsc] Hide ({}) | {}", reason, legacy.replace('§', '&'))
+    }
+
+    @JvmStatic
     fun log(legacy: String, clean: String, verdict: Verdict) {
         if (!enabled) return
         val rule = Registry.find(clean, legacy)?.first

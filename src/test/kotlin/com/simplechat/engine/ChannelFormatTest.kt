@@ -7,6 +7,36 @@ import org.junit.jupiter.api.Test
 class ChannelFormatTest {
     private val cfg = RuleConfig.DEFAULT
 
+    @Test fun `multiple public emblems follow the emblem and rank toggles`() {
+        val raw = "§8[§c512§8] §7Σ §f♲ §b[MVP§3+§b] Shingblad§f: again"
+        for (hideEmblem in listOf(true, false)) {
+            for (showRank in listOf(true, false)) {
+                val selected = cfg.copy(prefix = cfg.prefix.copy(hideEmblem = hideEmblem),
+                    publicStyle = cfg.publicStyle.copy(showRank = showRank))
+                val verdict = ChatRules.evaluate(raw, selected)
+                assert(verdict is Verdict.Segments) { "Message public non reconnu : $verdict" }
+                val segs = (verdict as Verdict.Segments).segs
+                val expected = "[512] " + (if (hideEmblem) "" else "Σ ♲ ") +
+                    (if (showRank) "[MVP+] " else "") + "Shingblad: again"
+                assertEquals(expected, segs.joinToString("") { it.text })
+                assertEquals(0xFF5555, segs.first { it.text == "512" }.color)
+                assertEquals(0x55FFFF, segs.first { it.text == "Shingblad" }.color)
+                if (!hideEmblem) {
+                    assertEquals(0xAAAAAA, segs.first { "Σ" in it.text }.color)
+                    assertEquals(0xFFFFFF, segs.first { "♲" in it.text }.color)
+                }
+            }
+        }
+    }
+
+    @Test fun `unicode emblems without a rank are not part of the player name`() {
+        val raw = "[512] Σ ♲ Shingblad: again"
+        assertEquals("Shingblad", ChannelFormat.author(raw, Channel.PUBLIC))
+        assertEquals(Verdict.Hide, ChatRules.evaluate(raw, cfg.copy(mutedPlayers = listOf("Shingblad"))))
+        val segs = ChannelFormat.format(raw, Channel.PUBLIC, cfg).orEmpty()
+        assertEquals("[512] Shingblad: again", segs.joinToString("") { it.text })
+    }
+
     @Test fun `public keeps rank colors and original message color`() {
         val c = cfg.copy(publicStyle = cfg.publicStyle.copy(showRank = true))
         val segs = ChannelFormat.format("[221] ⛃ §b[MVP§c+§b] Milo§f: selling", Channel.PUBLIC, c)!!

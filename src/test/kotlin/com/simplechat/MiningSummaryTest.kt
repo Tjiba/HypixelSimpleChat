@@ -7,6 +7,7 @@ import com.simplechat.engine.Verdict
 import com.simplechat.rules.islands.Mining
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
 /** Le pavé d'un coffre arrive en une dizaine de messages : seul un état côté client les fusionne. */
@@ -17,31 +18,72 @@ class MiningSummaryTest {
     private val bar = "§r§d§l" + "▬".repeat(64)
     private val otherBar = "§r§3§l" + "▬".repeat(64)
 
+    @BeforeEach fun reset() { MiningSummary.reset() }
+
+    @Test fun `disabled settings leave chest and crystal lines untouched`() {
+        for (disabled in listOf(cfg.copy(masterEnabled = false), cfg.copy(skyblockEnabled = false))) {
+            feed(bar)
+            feed("  §6§lCHEST LOCKPICKED")
+            assertNull(feed("    §dGemstone Powder", disabled))
+            assertNull(feed(bar, disabled))
+            assertNull(feed("§r§5§l" + "▬".repeat(64), disabled))
+            assertNull(feed("    §dGemstone Powder"))
+        }
+    }
+
+    @Test fun `HIDE stops at an unrelated message`() {
+        val hide = cfg.copy(groupActions = mapOf(MiningSummary.SETTING to RuleAction.HIDE))
+        feed(bar, hide)
+        feed("  §6§lCHEST LOCKPICKED", hide)
+        assertNull(feed("Party > Timo: gg", hide))
+        assertNull(feed("    §dGemstone Powder", hide))
+    }
+
     private fun feed(raw: String, config: RuleConfig = cfg) =
         MiningSummary.process(ChatRules.clean(raw), raw, config)
 
     @Test fun `a whole chest becomes one line`() {
-        assertEquals(Verdict.Hide, feed(bar))
+        assertNull(feed(bar))
         assertEquals(Verdict.Hide, feed("  §r§6§lCHEST LOCKPICKED"))
         assertEquals(Verdict.Hide, feed("§r"))
         assertEquals(Verdict.Hide, feed("  §r§a§lREWARDS"))
-        assertEquals(Verdict.Hide, feed("    §r§dGemstone Powder §r§8x537"))
-        assertEquals(Verdict.Hide, feed("    §r§a⸕ Flawed Amber Gemstone §r§8x2"))
-        assertEquals(Verdict.Hide, feed("    §r§9Goblin Egg"))
+        assertEquals(Verdict.Replace("§6§lCHEST §r§dGemstone Powder §7x537"), feed("    §r§dGemstone Powder §r§8x537"))
+        assertEquals(Verdict.Replace("§6§lCHEST §r§dGemstone Powder §7x537 §8· §a⸕ Flawed Amber Gemstone §7x2"),
+            feed("    §r§a⸕ Flawed Amber Gemstone §r§8x2"))
         assertEquals(
             Verdict.Replace(
                 "§6§lCHEST §r§dGemstone Powder §7x537 §8· §a⸕ Flawed Amber Gemstone §7x2 §8· §9Goblin Egg"
             ),
-            feed(bar),
+            feed("    §r§9Goblin Egg"),
         )
+        assertEquals(Verdict.Hide, feed(bar))
     }
 
     // Le titre du coffre à butin est écrit autrement, et dans sa propre couleur.
     @Test fun `a loot chest keeps its own name and color`() {
         feed(bar)
         assertEquals(Verdict.Hide, feed("  §r§5§lLOOT CHEST COLLECTED"))
-        assertEquals(Verdict.Hide, feed("    §r§5Treasurite"))
-        assertEquals(Verdict.Replace("§5§lLOOT CHEST §r§5Treasurite"), feed(bar))
+        assertEquals(Verdict.Replace("§5§lLOOT CHEST §r§5Treasurite"), feed("    §r§5Treasurite"))
+        assertEquals(Verdict.Hide, feed(bar))
+    }
+
+    @Test fun `skyblock xp leaves pending chest rewards intact`() {
+        feed(bar)
+        feed("  §r§5§lLOOT CHEST COLLECTED")
+        assertEquals(Verdict.Replace("§5§lLOOT CHEST §r§5Treasurite"), feed("    §r§5Treasurite"))
+        assertNull(feed("    §b+2 SkyBlock XP §7(Bag Upgrades) §8(69/100)"))
+        assertEquals(Verdict.Hide, feed(bar))
+    }
+
+    @Test fun `grey modes remove summary colors including custom rgb`() {
+        for (action in listOf(RuleAction.GREY, RuleAction.COMPACT_GREY)) {
+            MiningSummary.reset()
+            val grey = cfg.copy(groupActions = mapOf(MiningSummary.SETTING to action))
+            feed(bar, grey)
+            feed("  §6§lCHEST LOCKPICKED", grey)
+            assertEquals(Verdict.Replace("§8CHEST Gemstone Powder x537"),
+                feed("    §#FF55FFGemstone Powder §8x537", grey))
+        }
     }
 
     // Les autres pavés à ▬ d'Hypixel ont d'autres couleurs : ils ne sont pas à nous.
@@ -62,14 +104,15 @@ class MiningSummaryTest {
 
     // Une ligne inattendue rend la main : sans ça le pavé avalerait la suite du chat.
     @Test fun `an unexpected line ends the block`() {
-        assertEquals(Verdict.Hide, feed(bar))
+        assertNull(feed(bar))
+        assertEquals(Verdict.Hide, feed("  §6§lCHEST LOCKPICKED"))
         assertNull(feed("§7Party > Timo: gg"))
         assertNull(feed("    §r§dGemstone Powder §r§8x537"))
     }
 
     @Test fun `HIDE drops the whole block`() {
         val hide = cfg.copy(groupActions = mapOf(MiningSummary.SETTING to RuleAction.HIDE))
-        assertEquals(Verdict.Hide, feed(bar, hide))
+        assertNull(feed(bar, hide))
         assertEquals(Verdict.Hide, feed("  §r§6§lCHEST LOCKPICKED", hide))
         assertEquals(Verdict.Hide, feed("    §r§dGemstone Powder §r§8x537", hide))
         assertEquals(Verdict.Hide, feed(bar, hide))
